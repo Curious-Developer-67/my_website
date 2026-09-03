@@ -13,6 +13,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307090D'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%233ED9C4'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%233ED9C4' stroke-opacity='.55' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%233ED9C4' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://generativelanguage.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -63,7 +64,10 @@ button{cursor:pointer;}
    itself must never show the global focus ring. */
 .screen:focus{outline:none;}
 
-.credits-name,.role-title,.setup-title,.report-title,.scenario-head,.cine-line,.narrative-text{
+/* .narrative-text is deliberately NOT balanced: balance re-wraps the whole
+   centered paragraph every time the stream adds a word, which reads as
+   constant jitter while a consequence is typing itself out. */
+.credits-name,.role-title,.setup-title,.report-title,.scenario-head,.cine-line{
   text-wrap:balance;
 }
 
@@ -428,6 +432,12 @@ button{cursor:pointer;}
 @keyframes narrIn{from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:none;}}
 .narrative-tag{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--gold); margin-bottom:14px;}
 .narrative-text{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(18px,2.6vw,26px); line-height:1.6; min-height:2em;}
+/* Blinking caret while the consequence stream has not produced its first
+   words yet — proves the model is working during the quiet first seconds. */
+.narrative-text:empty::after{
+  content:''; display:inline-block; width:.45em; height:1em; margin-left:3px;
+  background:var(--gold); vertical-align:-.12em; animation:blink 1s step-end infinite;
+}
 .narrative-shifts{display:flex; gap:14px; justify-content:center; margin:26px 0; flex-wrap:wrap;}
 .shift-chip{font-family:'IBM Plex Mono',monospace; font-size:12px; padding:6px 12px; border-radius:20px; border:1px solid var(--line-strong);}
 .shift-chip.up{color:var(--cool); border-color:var(--cool);}
@@ -484,8 +494,120 @@ button{cursor:pointer;}
 .btn-ghost{background:none; border:1px solid var(--line-strong); color:var(--text); border-radius:var(--radius-sm); padding:13px 22px; font-size:13px; transition:all .2s;}
 .btn-ghost:hover{border-color:var(--cool); color:var(--cool); background:rgba(255,255,255,.03);}
 
+/* ============================= CORNER CONTROLS ============================= */
+/* Fixed chrome lives outside #app so screen transitions never unmount it, and
+   above screens but below modals so it can never sit on top of a dialog. */
+.corner-controls{
+  position:fixed; top:16px; right:16px; z-index:60; display:flex; gap:8px;
+}
+.corner-btn{
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(11,18,32,.72); border:1px solid var(--line-strong);
+  color:var(--text-dim); font-size:13px; display:flex; align-items:center;
+  justify-content:center; backdrop-filter:blur(10px); transition:color .2s, border-color .2s;
+}
+.corner-btn:hover{color:var(--cool); border-color:var(--cool);}
+
+/* ============================= MODALS ============================= */
+.modal-overlay{
+  position:fixed; inset:0; z-index:90; background:rgba(4,5,8,.72); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; padding:24px;
+  opacity:0; visibility:hidden;
+  transition:opacity .25s var(--ease), visibility 0s linear .25s;
+}
+.modal-overlay.open{
+  opacity:1; visibility:visible;
+  transition:opacity .25s var(--ease), visibility 0s linear 0s;
+}
+.modal-card{
+  width:min(470px,94vw); max-height:82vh; overflow-y:auto;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
+  padding:30px; position:relative;
+  transform:translateY(12px) scale(.98);
+  transition:transform .25s var(--ease);
+}
+.modal-overlay.open .modal-card{transform:none;}
+.modal-card::before{
+  content:''; position:absolute; top:0; left:28px; right:28px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(62,217,196,.55), transparent);
+}
+.modal-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
+.modal-title{font-family:'Instrument Serif',serif; font-style:italic; font-size:26px; margin:0;}
+.modal-close{
+  background:none; border:1px solid var(--line-strong); color:var(--text-dim);
+  width:30px; height:30px; border-radius:50%; font-size:12px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:color .2s, border-color .2s;
+}
+.modal-close:hover{color:var(--warm); border-color:var(--warm);}
+.modal-kicker{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--cool); margin-bottom:12px;
+}
+.modal-body{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+.modal-body p{margin:0 0 14px;}
+.modal-body strong{color:var(--text); font-weight:600;}
+.modal-foot{
+  margin-top:20px; padding-top:14px; border-top:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+  color:var(--text-faint); display:flex; justify-content:space-between; gap:12px;
+}
+
+/* Settings rows */
+.settings-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:15px 0; border-bottom:1px solid var(--line);
+}
+.settings-row:first-of-type{padding-top:4px;}
+.settings-row:last-of-type{border-bottom:none; padding-bottom:4px;}
+.settings-label{font-size:13.5px; color:var(--text); font-weight:600;}
+.settings-desc{font-size:11.5px; color:var(--text-faint); margin-top:3px; line-height:1.5;}
+.settings-action{flex-shrink:0;}
+.switch{
+  position:relative; width:42px; height:24px; border-radius:12px; flex-shrink:0;
+  background:var(--line-strong); border:none; transition:background .2s;
+}
+.switch::after{
+  content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
+  background:var(--text-dim); transition:transform .2s var(--ease), background .2s;
+}
+.switch.on{background:rgba(62,217,196,.35);}
+.switch.on::after{transform:translateX(18px); background:var(--cool);}
+.mini-btn{
+  background:none; border:1px solid var(--line-strong); color:var(--text-dim);
+  border-radius:var(--radius-sm); padding:7px 12px; font-size:11.5px;
+  transition:color .2s, border-color .2s; white-space:nowrap;
+}
+.mini-btn:hover:not(:disabled){border-color:var(--cool); color:var(--cool);}
+.mini-btn.danger:hover:not(:disabled){border-color:var(--warm); color:var(--warm);}
+.mini-btn:disabled{opacity:.4; cursor:not-allowed;}
+.settings-select{
+  background:rgba(255,255,255,.03); border:1px solid var(--line-strong); color:var(--text);
+  border-radius:var(--radius-sm); padding:8px 10px; font-size:12px;
+  font-family:'IBM Plex Mono',monospace; cursor:pointer;
+}
+.settings-select:focus{border-color:var(--cool); box-shadow:0 0 0 3px rgba(62,217,196,.14); outline:none;}
+.settings-select option{background:var(--panel-2); color:var(--text);}
+
+/* Help content */
+.help-steps{list-style:none; margin:0 0 14px; padding:0;}
+.help-steps li{
+  display:flex; gap:10px; align-items:baseline; padding:8px 0;
+  border-bottom:1px solid var(--line); font-size:13px; line-height:1.55; color:var(--text-dim);
+}
+.help-steps li:last-child{border-bottom:none; padding-bottom:0;}
+.help-steps .hnum{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--cool);
+  border:1px solid var(--cool); border-radius:4px; padding:1px 6px; flex-shrink:0;
+}
+.help-kbd{
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px;
+  border:1px solid var(--line-strong); border-radius:4px; padding:1px 6px; color:var(--text);
+}
+
 /* ============================= TOASTS ============================= */
-#toasts{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:50; display:flex; flex-direction:column; gap:8px; align-items:center;}
+#toasts{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:100; display:flex; flex-direction:column; gap:8px; align-items:center;}
 .toast{
   background:var(--panel-2); border:1px solid var(--line-strong); border-radius:30px; padding:10px 18px;
   font-size:12.5px; box-shadow:0 10px 30px rgba(0,0,0,.5); animation:toastIn .3s var(--ease);
@@ -519,6 +641,87 @@ button{cursor:pointer;}
 <div id="vignette" aria-hidden="true"></div>
 <div class="pond-cursor" id="pondCursor" style="display:none;" aria-hidden="true"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
+
+<!-- Fixed chrome: available on every screen, lives outside #app -->
+<div class="corner-controls">
+  <button type="button" class="corner-btn" id="helpBtn" aria-label="Help and about this simulation" title="Help &amp; about">
+    <i class="fa-solid fa-question" aria-hidden="true"></i>
+  </button>
+  <button type="button" class="corner-btn" id="settingsBtn" aria-label="Open settings" title="Settings">
+    <i class="fa-solid fa-gear" aria-hidden="true"></i>
+  </button>
+</div>
+
+<!-- MODAL: SETTINGS -->
+<div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 class="modal-title" id="settingsTitle">Settings</h3>
+      <button type="button" class="modal-close" data-close aria-label="Close settings"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Sound</div>
+        <div class="settings-desc">Procedural drips and chimes, generated in your browser. No audio files, nothing to download.</div>
+      </div>
+      <div class="settings-action">
+        <button type="button" class="switch" id="soundToggle" role="switch" aria-checked="true" aria-label="Toggle sound"></button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">AI model</div>
+        <div class="settings-desc" id="modelDesc">Checking…</div>
+      </div>
+      <div class="settings-action">
+        <select id="modelSelect" class="settings-select" aria-label="AI model"></select>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Saved API key</div>
+        <div class="settings-desc" id="keyStatusDesc">Checking…</div>
+      </div>
+      <div class="settings-action">
+        <button type="button" class="mini-btn danger" id="forgetKeyBtn">Forget key</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-label">Clear saved data</div>
+        <div class="settings-desc">Removes your saved key and preferences from this device. An unfinished run keeps working until you close the tab.</div>
+      </div>
+      <div class="settings-action">
+        <button type="button" class="mini-btn danger" id="clearDataBtn">Clear</button>
+      </div>
+    </div>
+    <div class="modal-foot"><span>The Ripple Effect</span><span class="app-version">v—</span></div>
+  </div>
+</div>
+
+<!-- MODAL: HELP / ABOUT -->
+<div class="modal-overlay" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 class="modal-title" id="helpTitle">About</h3>
+      <button type="button" class="modal-close" data-close aria-label="Close about"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-kicker">How it works</div>
+    <div class="modal-body">
+      <p><strong>The Ripple Effect</strong> is a consequence simulator set in Deoghar, Jharkhand. Nothing here is scripted — every scenario, consequence, and report is written live by Google's Gemini model, then measured against five dials of the town's future: Environment, Economy, Health, Community, and Innovation.</p>
+      <ol class="help-steps">
+        <li><span class="hnum">1</span><span id="helpKeyStep">Paste a free Gemini API key. It stays on your device and is sent only to Google — never to this page's author.</span></li>
+        <li><span class="hnum">2</span><span>Choose a vantage point: Mayor, Founder, Citizen, or Student. Each starts the town in a different shape.</span></li>
+        <li><span class="hnum">3</span><span>Play five turns. Read each scenario and commit to a path — or ignore the options and write your own directive.</span></li>
+        <li><span class="hnum">4</span><span>Watch the ripples: the gauges shift, the Deoghar Wire fills with headlines, and the pond behind everything darkens or brightens with the world's pulse.</span></li>
+        <li><span class="hnum">5</span><span>Receive a legacy report — charts, strengths, unresolved risks, and the world you left behind. Copy it, or run again with a different role.</span></li>
+      </ol>
+      <p>Keyboard: <span class="help-kbd">1</span> <span class="help-kbd">2</span> <span class="help-kbd">3</span> pick a choice &middot; <span class="help-kbd">Enter</span> continue &middot; <span class="help-kbd">Esc</span> close dialogs.</p>
+      <p>Built by Abhigyan Aditya, Saint Francis School, Jasidih — with HTML, CSS, JavaScript, the Gemini API, and Chart.js.</p>
+    </div>
+    <div class="modal-foot"><span>A Project Ripple production</span><span class="app-version">v—</span></div>
+  </div>
+</div>
 
 <div id="app">
 
@@ -690,17 +893,41 @@ button{cursor:pointer;}
 
 <script>
 /* ============================================================
+   YOUR API KEY — PASTE IT ONCE, RIGHT HERE
+   ------------------------------------------------------------
+   Put your Gemini API key between the quotes below (get a free
+   one at https://aistudio.google.com/apikey) and this file will
+   never ask anyone for a key again — the setup screen is skipped
+   entirely. Leave it empty ('') to keep the enter-a-key flow.
+
+   Be aware: a key embedded here is readable by anyone you share
+   this file with, and it uses YOUR free quota. Fine for handing
+   around a class; think twice before posting the file online.
+============================================================ */
+const EMBEDDED_KEY = '';
+
+/* ============================================================
    CONFIG
 ============================================================ */
 const Config = {
   MAX_TURNS: 5,
   START_YEAR: 2026,
-  // Gemini 3.6 Flash: GA since July 2026, balanced speed/quality/cost, no
-  // billing required for the free tier — the right default for a scenario +
-  // JSON-schema simulator like this one. Chosen automatically so players never
-  // have to pick a model. If Google ever retires the pinned id, AI.request
-  // silently moves to the maintained `gemini-flash-latest` alias.
-  RECOMMENDED_MODEL: 'gemini-3.6-flash',
+  VERSION: '1.3.0',
+  // Free-tier-first model choice. Flash-Lite carries the highest free quota
+  // in the Gemini API (the closest thing to unlimited free prompts — several
+  // times the daily requests of regular Flash) AND the lowest latency of the
+  // family, which matters when every turn waits on a live generation. Its
+  // writing quality is more than enough for schema-driven scenario JSON.
+  // Google's "-latest" aliases always track the newest generation, so this
+  // default never retires; if an id ever 404s anyway, AI.request falls back
+  // to the maintained alias for the rest of the session. Switchable in Settings.
+  MODELS: [
+    {id:'gemini-flash-lite-latest', name:'Flash-Lite',
+     desc:'Fastest replies and the most free requests per day. Recommended.'},
+    {id:'gemini-flash-latest', name:'Flash',
+     desc:'Slightly sharper writing — but slower, and the free quota runs out sooner.'}
+  ],
+  DEFAULT_MODEL: 'gemini-flash-lite-latest',
   METRICS: [
     {key:'environment', name:'Environment', icon:'fa-leaf', color:'#3ED9C4'},
     {key:'economy',      name:'Economy',      icon:'fa-coins', color:'#C9A24B'},
@@ -744,6 +971,7 @@ const Sound = {
     return this.ctx;
   },
   tone(freq, dur, type='sine', gain=.06, delay=0){
+    if(!Prefs.sound) return;
     try{
       const ctx=this.ensure();
       const osc=ctx.createOscillator(), g=ctx.createGain();
@@ -764,12 +992,74 @@ const Sound = {
 };
 
 /* ============================================================
+   PREFERENCES — user-facing settings, persisted locally
+============================================================ */
+const Prefs = {
+  sound:true,
+  model:null,
+  load(){
+    try{
+      const raw = localStorage.getItem('ripple_prefs');
+      if(raw){
+        const p = JSON.parse(raw);
+        if(p && typeof p.sound==='boolean') this.sound = p.sound;
+        if(p && typeof p.model==='string') this.model = p.model;
+      }
+    }catch(e){}
+  },
+  save(){
+    try{ localStorage.setItem('ripple_prefs', JSON.stringify({sound:this.sound, model:this.model})); }catch(e){}
+  }
+};
+
+/* ============================================================
+   MODAL — shared dialog behavior for settings/help: one dialog
+   at a time, Escape and backdrop close, focus handed in on open
+   and restored to the trigger on close.
+============================================================ */
+const Modal = {
+  current:null, lastFocus:null,
+  open(id){
+    const m = document.getElementById(id);
+    if(!m || this.current===m) return;
+    if(this.current) this.close();
+    this.current = m;
+    this.lastFocus = document.activeElement;
+    m.classList.add('open');
+    const closeBtn = m.querySelector('[data-close]');
+    if(closeBtn) closeBtn.focus({preventScroll:true});
+  },
+  close(){
+    const m = this.current;
+    if(!m) return;
+    m.classList.remove('open');
+    this.current = null;
+    if(this.lastFocus && document.contains(this.lastFocus)){
+      this.lastFocus.focus({preventScroll:true});
+    }
+    this.lastFocus = null;
+  },
+  init(){
+    document.querySelectorAll('.modal-overlay').forEach(ov=>{
+      ov.addEventListener('click', e=>{ if(e.target===ov) Modal.close(); });
+    });
+    document.querySelectorAll('[data-close]').forEach(b=>{
+      b.addEventListener('click', ()=>Modal.close());
+    });
+    document.addEventListener('keydown', e=>{
+      if(e.key==='Escape' && this.current) this.close();
+    });
+  }
+};
+
+/* ============================================================
    STATE
 ============================================================ */
 const State = {
-  apiKey:'', model:Config.RECOMMENDED_MODEL, role:null,
+  apiKey:'', model:Config.DEFAULT_MODEL, role:null,
   year:Config.START_YEAR, turn:0, metrics:{},
   history:[], currentScenario:null, advisorCache:new Map(), pulseHistory:[],
+  pendingScenario:null, pendingFailed:false,
   save(remember){
     const payload = JSON.stringify({apiKey:this.apiKey, model:this.model});
     sessionStorage.setItem('ripple_session', payload);
@@ -783,7 +1073,8 @@ const State = {
       if(raw){
         const p = JSON.parse(raw);
         this.apiKey = p.apiKey || '';
-        this.model = Config.RECOMMENDED_MODEL;
+        // Model choice lives in Prefs (a preference, not a secret) and is
+        // applied by bindChrome before this runs — never clobbered here.
         return !!this.apiKey;
       }
     }catch(e){}
@@ -793,6 +1084,22 @@ const State = {
     this.apiKey='';
     sessionStorage.removeItem('ripple_session');
     localStorage.removeItem('ripple_remember');
+  },
+  // Removes only persisted copies; the in-memory key keeps working for the
+  // current session, so forgetting a key can never break a run in progress.
+  forgetSavedKey(){
+    sessionStorage.removeItem('ripple_session');
+    localStorage.removeItem('ripple_remember');
+  },
+  // Last 4 chars of whatever key is PERSISTED right now — not the in-memory
+  // one — so the settings panel reflects storage, not session state.
+  keyTail(){
+    try{
+      const raw = sessionStorage.getItem('ripple_session') || localStorage.getItem('ripple_remember');
+      if(!raw) return null;
+      const p = JSON.parse(raw);
+      return (p && p.apiKey) ? p.apiKey.slice(-4) : null;
+    }catch(e){ return null; }
   },
   pulse(){
     const m = this.metrics, ks = Config.METRICS.map(x=>x.key);
@@ -804,6 +1111,30 @@ const State = {
    is prompted with player-written text, so its responses are untrusted input. */
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Best-effort parse of a partially-streamed JSON string: closes whatever is
+   still open (strings, brackets) so fields already written by the model can be
+   rendered while the rest is still streaming in. */
+function partialJSON(text){
+  try{ return { ok:true, value:JSON.parse(text) }; }catch(e){}
+  let inStr=false, escCh=false; const stack=[];
+  for(const ch of text){
+    if(escCh){ escCh=false; continue; }
+    if(ch==='\\'){ escCh=true; continue; }
+    if(ch==='"'){ inStr=!inStr; continue; }
+    if(inStr) continue;
+    if(ch==='{'||ch==='[') stack.push(ch);
+    else if(ch==='}'||ch===']'){
+      const open=stack.pop();
+      if((ch==='}'&&open!=='{')||(ch===']'&&open!=='[')) return { ok:false, value:null };
+    }
+  }
+  let fixed=text;
+  if(escCh) fixed=fixed.slice(0,-1);
+  if(inStr) fixed+='"';
+  while(stack.length) fixed += stack.pop()==='{'?'}':']';
+  try{ return { ok:true, value:JSON.parse(fixed) }; }catch(e){ return { ok:false, value:null }; }
 }
 
 /* ============================================================
@@ -879,11 +1210,28 @@ const World = {
 };
 
 /* ============================================================
-   AI — Gemini integration, schema-validated + streaming advisor
+   AI — Gemini integration, schema-validated + streaming everywhere
 ============================================================ */
 const AI = {
   calls:0,
   FALLBACK_MODEL:'gemini-flash-latest',
+  // Gemini 3.x Flash "thinks" before it speaks by default, which can double
+  // the wall-clock time of a small structured call. Gemini 3 exposes
+  // thinkingLevel; 2.5-era models used thinkingBudget:0 — start with the
+  // cheapest knob for the pinned model family and let request() degrade
+  // automatically if the server rejects a knob form.
+  thinkState:'level',
+  thinkConfigFor(){
+    if(this.thinkState==='budget') return { thinkingBudget:0 };
+    if(this.thinkState==='none') return null;
+    return { thinkingLevel:'MINIMAL' };
+  },
+  genCfg(extra={}){
+    const cfg={...extra};
+    const think=this.thinkConfigFor();
+    if(think) cfg.thinkingConfig=think;
+    return cfg;
+  },
   urlFor(model, stream){
     const base = `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
     const key = encodeURIComponent(State.apiKey);
@@ -913,35 +1261,57 @@ const AI = {
     }catch(e){}
     return t.slice(0,180) || res.statusText || 'Unknown error';
   },
-  // Single choke point for every API call. If the pinned model id is ever
-  // retired (404), transparently retry once on Google's maintained
-  // `gemini-flash-latest` alias and stay on it for the rest of the session.
+  // Single choke point for every API call. Retries here are cheap and only
+  // fire on self-inflicted config mismatches: a retired pinned model id (404)
+  // falls back to Google's maintained `gemini-flash-latest` alias for the rest
+  // of the session, and a rejected thinking knob degrades level -> budget ->
+  // none before giving up. Genuine API errors are surfaced as-is.
   async request(body, {stream=false, timeoutMs=30000}={}){
-    const attempt = (model)=>this.withTimeout(async (signal)=>{
-      const res = await fetch(this.urlFor(model,stream), {
-        method:'POST', headers:{'Content-Type':'application/json'}, signal,
-        body: JSON.stringify(body)
-      });
-      if(res.status===404 && model!==this.FALLBACK_MODEL){
-        State.model = this.FALLBACK_MODEL;
-        const err = new Error('model-missing'); err.fallback = true;
-        throw err;
-      }
-      if(!res.ok){
-        const msg = await this.extractErrMsg(res);
-        const err = new Error('API '+res.status+' — '+msg);
-        err.status = res.status;
-        if(res.status===401 || res.status===403) err.message += ' — check that your Gemini API key is valid.';
-        throw err;
-      }
-      return res;
-    }, timeoutMs);
-    try{
-      return await attempt(State.model);
-    }catch(e){
-      if(e.fallback) return attempt(State.model);
-      throw e;
+    // Fail fast with a human message instead of a cryptic network error when
+    // the browser knows there is no connection.
+    if(navigator.onLine===false){
+      throw new Error("You're offline — reconnect to the internet and try again.");
     }
+    for(let attempt=0; attempt<4; attempt++){
+      try{
+        return await this.withTimeout(async (signal)=>{
+          const res = await fetch(this.urlFor(State.model,stream), {
+            method:'POST', headers:{'Content-Type':'application/json'}, signal,
+            body: JSON.stringify(body)
+          });
+          if(res.status===404 && State.model!==this.FALLBACK_MODEL){
+            State.model = this.FALLBACK_MODEL;
+            const err = new Error('model-missing'); err.retry='model';
+            throw err;
+          }
+          if(!res.ok){
+            const msg = await this.extractErrMsg(res);
+            if(res.status===400 && /think/i.test(msg) && body?.generationConfig?.thinkingConfig){
+              const cfg = body.generationConfig.thinkingConfig;
+              this.thinkState = ('thinkingLevel' in cfg) ? 'budget' : 'none';
+              const err = new Error('thinking-knob-rejected'); err.retry='knob';
+              throw err;
+            }
+            const err = new Error('API '+res.status+' — '+msg);
+            err.status = res.status;
+            if(res.status===401 || res.status===403) err.message += ' — check that your Gemini API key is valid.';
+            if(res.status===429) err.message += ' — free-tier rate limit reached. Wait about a minute and try again, or switch to Flash-Lite in Settings.';
+            throw err;
+          }
+          return res;
+        }, timeoutMs);
+      }catch(e){
+        if(e.retry==='model') continue;
+        if(e.retry==='knob'){
+          delete body.generationConfig.thinkingConfig;
+          const cfg=this.thinkConfigFor();
+          if(cfg) body.generationConfig.thinkingConfig=cfg;
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new Error('API request failed after retries.');
   },
   blockedReason(data){
     const fb = data.promptFeedback?.blockReason;
@@ -957,7 +1327,7 @@ const AI = {
   async callJSON(prompt, schema){
     const res = await this.request({
       contents:[{role:'user', parts:[{text:prompt}]}],
-      generationConfig:{ responseMimeType:'application/json', responseSchema:schema, maxOutputTokens:4096 }
+      generationConfig:this.genCfg({ responseMimeType:'application/json', responseSchema:schema, maxOutputTokens:4096 })
     });
     this.calls++; UI.updateCallCount();
     const data = await res.json();
@@ -975,14 +1345,14 @@ const AI = {
     try{ return await this.callJSON(prompt, schema); }
     catch(e){
       const noRetry = e.status===400 || e.status===401 || e.status===403 || e.status===404;
-      if(retries>0 && !noRetry){ await new Promise(r=>setTimeout(r,700)); return this.callJSONRetry(prompt,schema,retries-1); }
+      if(retries>0 && !noRetry){ await new Promise(r=>setTimeout(r,500)); return this.callJSONRetry(prompt,schema,retries-1); }
       throw e;
     }
   },
   async callText(prompt){
     const res = await this.request({
       contents:[{role:'user', parts:[{text:prompt}]}],
-      generationConfig:{maxOutputTokens:2048}
+      generationConfig:this.genCfg({maxOutputTokens:2048})
     });
     this.calls++; UI.updateCallCount();
     const data = await res.json();
@@ -993,7 +1363,7 @@ const AI = {
   async streamText(prompt, onChunk){
     const res = await this.request({
       contents:[{role:'user', parts:[{text:prompt}]}],
-      generationConfig:{maxOutputTokens:2048}
+      generationConfig:this.genCfg({maxOutputTokens:2048})
     }, {stream:true, timeoutMs:60000});
     if(!res.body) throw new Error('stream-unavailable');
     this.calls++; UI.updateCallCount();
@@ -1018,13 +1388,66 @@ const AI = {
     }
     return full;
   },
+  // Streams a schema-validated JSON answer and reports every parseable prefix
+  // through onPartial as it arrives, so the UI can render fields while the
+  // model is still writing. Falls back to the buffered call if the stream dies
+  // before producing any text; if it dies mid-stream, the best partial parse
+  // so far is returned.
+  async streamJSON(prompt, schema, onPartial, maxOutputTokens=4096){
+    let full='';
+    try{
+      const res = await this.request({
+        contents:[{role:'user', parts:[{text:prompt}]}],
+        generationConfig:this.genCfg({ responseMimeType:'application/json', responseSchema:schema, maxOutputTokens })
+      }, {stream:true, timeoutMs:45000});
+      if(!res.body) throw new Error('stream-unavailable');
+      this.calls++; UI.updateCallCount();
+      const reader = res.body.getReader(); const decoder = new TextDecoder();
+      let buffer='';
+      while(true){
+        const {done, value} = await reader.read();
+        if(done) break;
+        buffer += decoder.decode(value,{stream:true});
+        const lines = buffer.split('\n'); buffer = lines.pop();
+        for(const line of lines){
+          const t = line.trim();
+          if(!t.startsWith('data:')) continue;
+          const js = t.slice(5).trim();
+          if(!js || js==='[DONE]') continue;
+          try{
+            const parsed = JSON.parse(js);
+            const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            if(chunk){
+              full += chunk;
+              const p = partialJSON(full);
+              if(p.ok && onPartial) onPartial(p.value);
+            }
+          }catch(e){}
+        }
+      }
+    }catch(e){
+      if(!full.trim()) return await this.callJSONRetry(prompt, schema);
+      const p = partialJSON(full);
+      if(p.ok) return p.value;
+      throw e;
+    }
+    if(!full.trim()) throw new Error('Empty response from model');
+    const p = partialJSON(full);
+    if(p.ok) return p.value;
+    throw new Error('The model returned malformed data — try again.');
+  },
   async advise(prompt, onChunk){
     try{ return await this.streamText(prompt, onChunk); }
-    catch(e){ const text = await this.callText(prompt); onChunk(text); return text; }
+    catch(e){ const text = await this.callText(prompt); onChunk(text, true); return text; }
   }
 };
 
 const Schemas = {
+  // Wire format stays strictly standard Schema: ordering hints like
+  // propertyOrdering are NOT part of the Gemini API Schema object and can be
+  // rejected outright (400) or silently reordered. The model usually emits
+  // fields in schema-definition order anyway — metric chips tend to arrive
+  // before the narrative — but the UI tolerates any arrival order.
   scenario:{ type:'OBJECT', properties:{
     headline:{type:'STRING'}, situation:{type:'STRING'},
     choices:{ type:'ARRAY', items:{ type:'OBJECT', properties:{
@@ -1032,12 +1455,13 @@ const Schemas = {
     }, required:['id','label','summary']}}
   }, required:['headline','situation','choices']},
   decision:{ type:'OBJECT', properties:{
-    narrative:{type:'STRING'}, newsHeadline:{type:'STRING'},
+    newsHeadline:{type:'STRING'},
     metricShifts:{ type:'OBJECT', properties:{
       environment:{type:'INTEGER'}, economy:{type:'INTEGER'}, health:{type:'INTEGER'},
       community:{type:'INTEGER'}, innovation:{type:'INTEGER'}
-    }, required:['environment','economy','health','community','innovation']}
-  }, required:['narrative','newsHeadline','metricShifts']},
+    }, required:['environment','economy','health','community','innovation']},
+    narrative:{type:'STRING'}
+  }, required:['newsHeadline','metricShifts','narrative']},
   report:{ type:'OBJECT', properties:{
     title:{type:'STRING'}, epilogue:{type:'STRING'},
     strengths:{type:'ARRAY', items:{type:'STRING'}},
@@ -1052,7 +1476,7 @@ function metricLine(m){
 
 const LANGUAGE_STYLE = `
 
-Language rule: Write every piece of text you generate — headlines, situation, choice labels and summaries, narrative, news headlines, advisor commentary, report title, epilogue, strengths, and risks — in clear, natural English. Keep the tone direct and grounded. Local proper nouns, honorifics, and terms (e.g. Kanwariya, Shravani Mela, Bol Bam, Dham) may appear in English text exactly as they are known in English-language reporting, but the surrounding prose itself should be plain English throughout. This language rule applies only to the text values — never translate or rename the JSON field/key names themselves.`;
+Language rule: Write every piece of text you generate — headlines, situation, choice labels and summaries, narrative, news headlines, advisor commentary, report title, epilogue, strengths, and risks — in clear, natural English. Keep the tone direct and grounded. Local proper nouns, honorifics, and terms (e.g. Kanwariya, Shravani Mela, Bol Bam, Dham) may appear in English text exactly as they are known in English-language reporting, but the surrounding prose itself should be plain English throughout. This language rule applies only to the text values — never translate or rename the JSON field/key names themselves. Respect every stated length limit strictly; over-long, padded output is a failure.`;
 
 const Prompts = {
   scenario(){
@@ -1063,20 +1487,20 @@ Role: ${State.role.name} — ${State.role.desc}
 Year: ${State.year}. Turn ${State.turn} of ${Config.MAX_TURNS}.
 Current world state (0-100): ${metricLine(State.metrics)}.
 ${last ? 'Last consequence: '+last.newsHeadline+' — '+last.narrative.slice(0,160) : 'This is the opening moment — nothing has happened yet.'}
-Write ONE new, specific, morally ambiguous scenario this role must respond to right now. Ground it in concrete, plausible Deoghar detail — a real place, institution, festival, or named pressure from the world setting above — never generic. Offer exactly 3 distinct choices with real trade-offs; no choice should be obviously correct. Keep the situation to 3-4 sentences.${LANGUAGE_STYLE}`;
+Write ONE new, specific, morally ambiguous scenario this role must respond to right now. Ground it in concrete, plausible Deoghar detail — a real place, institution, festival, or named pressure from the world setting above — never generic. Offer exactly 3 distinct choices with real trade-offs; no choice should be obviously correct. Keep the situation to 3-4 short sentences — hard limit of 80 words.${LANGUAGE_STYLE}`;
   },
   decision(scenario, choiceLabel, choiceSummary){
     return `${WORLD_CONTEXT}
 Scenario: ${scenario.headline} — ${scenario.situation}
 The player, as ${State.role.name}, chose: ${choiceLabel} — ${choiceSummary}
 Current metrics (0-100): ${metricLine(State.metrics)}.
-Write the concrete consequence of this choice in 3-4 sentences, staying grounded in Deoghar's real institutions, geography, and pressures. Be specific and a little surprising — show a second-order effect, not just the obvious one. Then output metricShifts as integers from -12 to 12 for each of the five metrics (0 allowed) reflecting real trade-offs — it would be unusual for all five to move the same direction. Also write one short, punchy in-world news headline about this event (under 12 words).${LANGUAGE_STYLE}`;
+First write one short, punchy in-world news headline about this event (under 12 words). Then output metricShifts as integers from -12 to 12 for each of the five metrics (0 allowed), reflecting real trade-offs — it would be unusual for all five to move the same direction. Then write the narrative: the concrete consequence of this choice in 3-4 SHORT sentences — hard limit of 80 words — staying grounded in Deoghar's real institutions, geography, and pressures. Be specific and a little surprising — show a second-order effect, not just the obvious one.${LANGUAGE_STYLE}`;
   },
   advisor(scenario){
     return `${WORLD_CONTEXT}
 You are a sharp, candid advisor briefing ${State.role.name} in the moment before a decision: "${scenario.headline} — ${scenario.situation}"
 Current metrics: ${metricLine(State.metrics)}.
-In 3-4 sentences, give a direct, opinionated read on the risk each path carries, grounded in Deoghar's real stakes. Don't just restate the choices — add insight they don't already have. Speak to the player directly as "you." No headers, no lists, plain prose.${LANGUAGE_STYLE}`;
+In 3-4 short sentences (hard limit of 70 words), give a direct, opinionated read on the risk each path carries, grounded in Deoghar's real stakes. Don't just restate the choices — add insight they don't already have. Speak to the player directly as "you." No headers, no lists, plain prose.${LANGUAGE_STYLE}`;
   },
   report(){
     const hist = State.history.map((h,i)=>`${i+1}. ${h.newsHeadline}`).join(' / ');
@@ -1126,18 +1550,6 @@ const UI = {
     const el = document.getElementById('callCount');
     if(el) el.textContent = AI.calls;
   },
-  typewriter(el, text, speed=16){
-    return new Promise(resolve=>{
-      el.textContent='';
-      let i=0;
-      const step=()=>{
-        el.textContent = text.slice(0,i);
-        i++;
-        if(i<=text.length){ setTimeout(step, speed); } else resolve();
-      };
-      step();
-    });
-  },
   animateNumber(el, from, to, dur=800){
     const start=performance.now();
     function frame(now){
@@ -1186,23 +1598,73 @@ const UI = {
 };
 
 /* ============================================================
+   TYPER — smooth streaming text
+   SSE chunks arrive in irregular network-sized bursts; writing
+   them straight into the DOM makes prose jump. The typer buffers
+   the accumulated text and reveals a couple of characters per
+   frame, draining faster as the backlog grows, so output always
+   flows at a steady, readable cadence.
+============================================================ */
+const Typer = {
+  run(el){
+    let full='', shown=0, ended=false, cancelled=false, resolveDrain=null;
+    const instant = World.reduceMotion;
+    const drain = new Promise(r=>resolveDrain=r);
+    const frame = ()=>{
+      if(cancelled) return;
+      if(shown < full.length){
+        const backlog = full.length - shown;
+        shown += Math.min(backlog, Math.max(2, Math.ceil(backlog/25)));
+        el.textContent = full.slice(0, shown);
+      }
+      if(ended && shown >= full.length){ resolveDrain(); return; }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    return {
+      push(text){
+        if(cancelled) return;
+        full += text;
+        if(instant){ shown = full.length; el.textContent = full; }
+      },
+      reset(){ full=''; shown=0; el.textContent=''; },
+      end(){ ended=true; return drain; },
+      cancel(){ cancelled=true; }
+    };
+  }
+};
+
+/* ============================================================
    GAME LOOP
 ============================================================ */
 const Game = {
   hasStarted:false,
+  advisorInflight:null,
   init(){
     World.init(document.getElementById('current'));
+    this.bindChrome();
     this.bindCredits();
     this.bindIntro();
     this.bindSetup();
     this.bindRoles();
     this.bindHud();
     this.bindReport();
+    this.bindConnectivity();
+    this.bindErrorSurface();
     if(State.restore()){
       const keyInput = document.getElementById('apiKeyInput');
       keyInput.value = State.apiKey;
       document.getElementById('enterBtn').disabled = false;
+    }else if(EMBEDDED_KEY){
+      // Author-embedded key: nobody is ever asked. Session-only — it is not
+      // re-persisted to storage, so the file remains the single source.
+      State.apiKey = EMBEDDED_KEY.trim();
     }
+  },
+  // True when play can proceed without the setup screen — a key embedded by
+  // the author at load time, or one already living in State for this session.
+  keyAvailable(){
+    return !!(State.apiKey || EMBEDDED_KEY);
   },
   bindCredits(){
     const screen = document.getElementById('screen-credits');
@@ -1216,6 +1678,7 @@ const Game = {
     };
     // Keyboard users get the same gate as pointer users: Enter/Space continue.
     const keyProceed = (e)=>{
+      if(Modal.current) return;
       if((e.key==='Enter' || e.key===' ') && screen.classList.contains('active')){
         e.preventDefault();
         proceed();
@@ -1263,6 +1726,7 @@ const Game = {
       setTimeout(()=>this.runCinematic(), 900);
     };
     const keyBegin = (e)=>{
+      if(Modal.current) return;
       if((e.key==='Enter' || e.key===' ') && screen.classList.contains('active')){
         e.preventDefault();
         begin(e);
@@ -1298,7 +1762,9 @@ const Game = {
     Sound.chime();
     await this.fade(titleEl, 0, 1, 700);
     await this.wait(1600);
-    UI.showScreen('screen-setup');
+    // With a key available (embedded by the author, or remembered from a
+    // previous session) the key screen never appears — straight to roles.
+    UI.showScreen(this.keyAvailable() ? 'screen-role' : 'screen-setup');
   },
   fade(el,from,to,dur){
     return new Promise(res=>{
@@ -1334,6 +1800,133 @@ const Game = {
     });
   },
 
+  // Fixed chrome shared by every screen: corner buttons, the settings dialog
+  // (sound, saved key, clear data) and the about dialog, plus version tags.
+  bindChrome(){
+    Prefs.load();
+    // Apply a persisted model choice, falling back to the default if the
+    // saved id is no longer in the line-up.
+    if(!Config.MODELS.some(m=>m.id===Prefs.model)) Prefs.model = null;
+    State.model = Prefs.model || Config.DEFAULT_MODEL;
+    Modal.init();
+    document.querySelectorAll('.app-version').forEach(el=>{ el.textContent = 'v'+Config.VERSION; });
+
+    document.getElementById('settingsBtn').addEventListener('click', ()=>{
+      this.renderKeyStatus();
+      Modal.open('settingsModal');
+    });
+    document.getElementById('helpBtn').addEventListener('click', ()=>{
+      Modal.open('helpModal');
+    });
+
+    // Help step 1 describes whichever key situation this copy is in.
+    const helpKeyStep = document.getElementById('helpKeyStep');
+    if(helpKeyStep){
+      helpKeyStep.textContent = EMBEDDED_KEY
+        ? 'A free Gemini API key is already built into this copy — nothing to enter. It is sent only to Google.'
+        : 'Paste a free Gemini API key. It stays on your device and is sent only to Google — never to this page\u2019s author.';
+    }
+
+    const modelSelect = document.getElementById('modelSelect');
+    modelSelect.innerHTML = Config.MODELS.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+    const syncModel = ()=>{
+      modelSelect.value = Config.MODELS.some(m=>m.id===State.model) ? State.model : Config.MODELS[0].id;
+      const m = Config.MODELS.find(x=>x.id===modelSelect.value);
+      document.getElementById('modelDesc').textContent = m ? m.desc : '';
+    };
+    modelSelect.addEventListener('change', ()=>{
+      State.model = modelSelect.value;
+      Prefs.model = modelSelect.value;
+      Prefs.save();
+      syncModel();
+    });
+    syncModel();
+
+    const soundToggle = document.getElementById('soundToggle');
+    const syncSound = ()=>{
+      soundToggle.classList.toggle('on', Prefs.sound);
+      soundToggle.setAttribute('aria-checked', String(Prefs.sound));
+    };
+    syncSound();
+    soundToggle.addEventListener('click', ()=>{
+      Prefs.sound = !Prefs.sound;
+      Prefs.save();
+      syncSound();
+      if(Prefs.sound) Sound.click();
+    });
+
+    document.getElementById('forgetKeyBtn').addEventListener('click', ()=>{
+      State.forgetSavedKey();
+      const keyInput = document.getElementById('apiKeyInput');
+      keyInput.value='';
+      document.getElementById('enterBtn').disabled = true;
+      this.renderKeyStatus();
+      UI.toast('Saved key forgotten. Any run in progress still works until you close the tab.', 'success');
+    });
+
+    document.getElementById('clearDataBtn').addEventListener('click', ()=>{
+      State.forgetSavedKey();
+      try{ localStorage.removeItem('ripple_prefs'); }catch(e){}
+      Prefs.sound = true;
+      syncSound();
+      Prefs.model = null;
+      State.model = Config.DEFAULT_MODEL;
+      syncModel();
+      const keyInput = document.getElementById('apiKeyInput');
+      keyInput.value='';
+      document.getElementById('enterBtn').disabled = true;
+      this.renderKeyStatus();
+      UI.toast('All saved data cleared from this device.', 'success');
+    });
+  },
+
+  renderKeyStatus(){
+    const desc = document.getElementById('keyStatusDesc');
+    const btn = document.getElementById('forgetKeyBtn');
+    if(EMBEDDED_KEY){
+      desc.textContent = 'Built into this file — players are never asked for one, and nothing is stored on devices to forget.';
+      btn.disabled = true;
+      return;
+    }
+    const tail = State.keyTail();
+    if(tail){
+      desc.textContent = `Saved on this device — ends “${tail}”. Forgetting it never interrupts the current session.`;
+      btn.disabled = false;
+    }else{
+      desc.textContent = 'No key saved yet. You will be asked for one before playing.';
+      btn.disabled = true;
+    }
+  },
+
+  // Connectivity announcements: a dropped connection should explain itself
+  // before any AI call fails, and coming back should be just as visible.
+  bindConnectivity(){
+    window.addEventListener('offline', ()=>{
+      UI.toast("You're offline — AI calls will fail until you reconnect.", 'error');
+    });
+    window.addEventListener('online', ()=>{
+      UI.toast('Back online.', 'success');
+    });
+  },
+
+  // Last-resort surface for errors nothing catches: better a visible toast
+  // than a silent console entry the player never sees. Throttled so a
+  // repeating failure cannot spam the screen.
+  bindErrorSurface(){
+    let lastShown = 0;
+    const surface = (msg)=>{
+      const now = Date.now();
+      if(now - lastShown < 3000) return;
+      lastShown = now;
+      UI.toast('Unexpected error: '+msg, 'error');
+    };
+    window.addEventListener('error', e=>surface(e.message || 'script error'));
+    window.addEventListener('unhandledrejection', e=>{
+      const r = e.reason;
+      surface(r && r.message ? r.message : String(r));
+    });
+  },
+
   bindRoles(){
     const grid = document.getElementById('roleGrid');
     grid.innerHTML = Config.ROLES.map((r,i)=>`
@@ -1348,19 +1941,7 @@ const Game = {
     grid.querySelectorAll('.role-card').forEach(card=>{
       card.addEventListener('click', ()=>{
         const role = Config.ROLES.find(r=>r.id===card.dataset.role);
-        State.role = role;
-        State.metrics = {...role.start};
-        State.year = Config.START_YEAR;
-        State.turn = 0;
-        State.history = [];
-        State.pulseHistory = [State.pulse()];
-        Sound.chime();
-        this.hasStarted = true;
-        document.getElementById('roleTag').textContent = role.name;
-        UI.renderGauges();
-        UI.renderTurnDots();
-        UI.showScreen('screen-hud');
-        this.beginTurn();
+        this.startRun(role);
       });
     });
   },
@@ -1373,11 +1954,13 @@ const Game = {
       if(!val){ UI.toast('Write a directive first.', 'error'); return; }
       this.commitChoice(null, val);
     });
-    document.getElementById('continueBtn').addEventListener('click', ()=>{
-      document.getElementById('narrativeOverlay').classList.remove('show');
-      if(State.turn >= Config.MAX_TURNS){ this.runFinalReport(); }
-      else { this.beginTurn(); }
-    });
+    document.getElementById('continueBtn').addEventListener('click', ()=>this.onContinue());
+    // Warm the advisor cache while the player is still reading the scenario —
+    // by the time they click, the answer is usually already on the device.
+    const advisorBtn = document.getElementById('advisorToggle');
+    const warmAdvisor = ()=>{ if(State.currentScenario) this.getAdvisorText(State.currentScenario).catch(()=>{}); };
+    advisorBtn.addEventListener('mouseenter', warmAdvisor);
+    advisorBtn.addEventListener('focus', warmAdvisor);
   },
 
   resetRun(){
@@ -1389,7 +1972,16 @@ const Game = {
     State.currentScenario = null;
     State.advisorCache = new Map();
     State.pulseHistory = [];
+    State.pendingScenario = null;
+    State.pendingFailed = false;
     this.hasStarted = false;
+    this.stopElapsed();
+    this.advisorInflight = null;
+    this._prefetch = null;
+    this._continuing = false;
+    if(this._narrTyper){ this._narrTyper.cancel(); this._narrTyper = null; }
+    if(this._bodyTyper){ this._bodyTyper.cancel(); this._bodyTyper = null; }
+    this._bodyLen = 0;
     if(this.radarChart){ this.radarChart.destroy(); this.radarChart = null; }
     if(this.lineChart){ this.lineChart.destroy(); this.lineChart = null; }
     const ticker = document.getElementById('tickerInner');
@@ -1407,58 +1999,203 @@ const Game = {
     UI.showScreen('screen-role');
   },
 
-  // Advances the clock and opens the next decision. Deliberately the ONLY
-  // place turn/year advance — scenario retries call loadScenario() directly
-  // so a failed generation can never silently skip a year.
-  async beginTurn(){
+  // Continue past a consequence card. If the player clicks faster than the
+  // background prefetch finishes, the in-flight request is awaited — never
+  // duplicated — and a second click while one Continue is running is ignored.
+  async onContinue(){
+    if(this._continuing) return;
+    this._continuing = true;
+    document.getElementById('narrativeOverlay').classList.remove('show');
+    try{
+      if(State.turn >= Config.MAX_TURNS){ this.runFinalReport(); return; }
+      this.showTurn();
+      let next = State.pendingScenario;
+      State.pendingScenario = null;
+      State.pendingFailed = false;
+      if(!next && this._prefetch){
+        // The warmed scenario is still on the wire — ride the same request.
+        next = await this._prefetch.catch(()=>null);
+      }
+      this._prefetch = null;
+      if(next){
+        State.currentScenario = next;
+        this.renderScenario(next);
+      }else{
+        this.loadScenario();
+      }
+    }finally{
+      this._continuing = false;
+    }
+  },
+
+  startRun(role){
+    State.role = role;
+    State.metrics = {...role.start};
+    State.year = Config.START_YEAR;
+    State.turn = 0;
+    State.history = [];
+    State.pulseHistory = [State.pulse()];
+    State.pendingScenario = null;
+    State.pendingFailed = false;
+    Sound.chime();
+    this.hasStarted = true;
+    document.getElementById('roleTag').textContent = role.name;
+    UI.renderGauges();
+    this.advanceClock();
+    this.showTurn();
+    UI.showScreen('screen-hud');
+    this.loadScenario();
+  },
+
+  // The clock advances exactly once per turn — at run start, or while the
+  // consequence card is still open (next-turn prefetch). showTurn() reveals
+  // it; nothing else touches the turn/year displays.
+  advanceClock(){
     State.turn++;
     if(State.turn > 1){ State.year += 1 + Math.round(Math.random()); }
+  },
+  showTurn(){
     document.getElementById('turnTag').textContent = `Turn ${State.turn} / ${Config.MAX_TURNS}`;
     document.getElementById('yearNum').textContent = State.year;
     UI.renderTurnDots();
-    await this.loadScenario();
   },
 
-  async loadScenario(){
-    document.getElementById('scenarioEyebrow').textContent = 'Generating scenario…';
-    document.getElementById('scenarioHead').innerHTML = '<span class="skeleton" style="display:block; height:22px; width:80%;"></span>';
-    document.getElementById('scenarioBody').innerHTML = '<span class="skeleton" style="display:block; height:60px; margin-top:8px;"></span>';
-    document.getElementById('choiceList').innerHTML='';
+  // A mono elapsed-seconds counter next to the status label: visible waiting
+  // feels half as long as a frozen skeleton, and it proves the app is alive.
+  elapsed(label){
+    this.stopElapsed();
+    const el = document.getElementById('scenarioEyebrow');
+    const t0 = Date.now();
+    el.textContent = label;
+    this._elapsedTimer = setInterval(()=>{
+      el.textContent = `${label} · ${((Date.now()-t0)/1000).toFixed(1)}s`;
+    }, 200);
+  },
+  stopElapsed(){
+    if(this._elapsedTimer){ clearInterval(this._elapsedTimer); this._elapsedTimer = null; }
+  },
+
+  async loadScenario(silent=false){
     document.getElementById('advisorPanel').style.display='none';
     document.getElementById('advisorPanel').innerHTML='';
     document.getElementById('directiveInput').value='';
     document.getElementById('directiveSubmit').disabled = false;
 
+    if(silent){
+      // Warm the NEXT turn behind the consequence card so Continue feels
+      // instant. The promise is also stored on the game so a fast Continue
+      // can await this very request instead of firing a duplicate stream.
+      // Best-effort: on failure, Continue falls back to the normal skeleton
+      // path. The clock was already advanced by the caller.
+      try{
+        const s = await AI.streamJSON(Prompts.scenario(), Schemas.scenario, ()=>{});
+        State.pendingScenario = s;
+        State.pendingFailed = false;
+        return s;
+      }catch(e){
+        State.pendingScenario = null;
+        State.pendingFailed = true;
+        return null;
+      }
+    }
+
+    this.elapsed('Generating scenario');
+    if(this._bodyTyper){ this._bodyTyper.cancel(); this._bodyTyper = null; }
+    this._bodyLen = 0;
+    document.getElementById('scenarioHead').innerHTML = '<span class="skeleton" style="display:block; height:22px; width:80%;"></span>';
+    document.getElementById('scenarioBody').innerHTML = '<span class="skeleton" style="display:block; height:60px; margin-top:8px;"></span>';
+    document.getElementById('choiceList').innerHTML='';
+
     try{
-      const scenario = await AI.callJSONRetry(Prompts.scenario(), Schemas.scenario);
+      const scenario = await AI.streamJSON(Prompts.scenario(), Schemas.scenario, (partial)=>this.renderScenarioPartial(partial), 2048);
+      this.stopElapsed();
       State.currentScenario = scenario;
       this.renderScenario(scenario);
     }catch(e){
+      this.stopElapsed();
       UI.toast('Scenario generation failed: '+e.message, 'error');
       document.getElementById('scenarioEyebrow').textContent = 'Connection trouble';
       document.getElementById('scenarioHead').textContent = 'The current went still.';
       document.getElementById('scenarioBody').innerHTML = `Something interrupted the simulation. <button type="button" class="btn-ghost" id="scenarioRetryBtn" style="margin-top:10px;">Try again</button>`;
-      document.getElementById('scenarioRetryBtn').addEventListener('click', ()=>this.loadScenario());
+      document.getElementById('scenarioRetryBtn').addEventListener('click', ()=>{ this.showTurn(); this.loadScenario(); });
+    }
+  },
+
+  // Progressive scenario render: the headline appears first, then the
+  // situation, then choice cards fill in as the stream writes them. Buttons
+  // stay disabled until the complete answer is in.
+  renderScenarioPartial(p){
+    if(!p || typeof p!=='object') return;
+    const head = document.getElementById('scenarioHead');
+    if(typeof p.headline==='string' && p.headline){
+      if(head.querySelector('.skeleton')) head.innerHTML='';
+      head.textContent = p.headline;
+    }
+    const body = document.getElementById('scenarioBody');
+    if(typeof p.situation==='string' && p.situation.length > (this._bodyLen||0)){
+      if(body.querySelector('.skeleton')){ body.innerHTML=''; if(this._bodyTyper) this._bodyTyper.cancel(); this._bodyTyper=null; }
+      // The situation streams through the typer like the consequence does —
+      // the skeleton swap hands the element to a smooth drain.
+      if(!this._bodyTyper) this._bodyTyper = Typer.run(body);
+      this._bodyTyper.push(p.situation.slice(this._bodyLen||0));
+      this._bodyLen = p.situation.length;
+    }
+    const list = document.getElementById('choiceList');
+    const choices = Array.isArray(p.choices) ? p.choices : [];
+    for(let i=0;i<choices.length;i++){
+      let btn = list.querySelector(`.choice-btn[data-i="${i}"]`);
+      if(!btn){
+        btn = document.createElement('button');
+        btn.type='button'; btn.className='choice-btn'; btn.dataset.i=String(i);
+        btn.disabled = true;
+        btn.innerHTML = `<div class="clabel"><span class="ckey">${i+1}</span> <span class="clabel-text"></span></div><div class="csum"></div>`;
+        btn.addEventListener('click', ()=>{
+          const c = (State.currentScenario||{}).choices?.[parseInt(btn.dataset.i)];
+          if(c) this.commitChoice(c, null, btn);
+        });
+        list.appendChild(btn);
+      }
+      const c = choices[i]||{};
+      const lt = btn.querySelector('.clabel-text');
+      if(typeof c.label==='string' && c.label && lt.textContent!==c.label) lt.textContent = c.label;
+      const cs = btn.querySelector('.csum');
+      if(typeof c.summary==='string' && c.summary && cs.textContent!==c.summary) cs.textContent = c.summary;
     }
   },
   renderScenario(scenario){
     document.getElementById('scenarioEyebrow').textContent = `${State.role.name} · Year ${State.year}`;
-    document.getElementById('scenarioHead').textContent = scenario.headline;
+    // The body typer may still be draining the last characters when the full
+    // answer lands — cancel it and snap to the finished text.
+    if(this._bodyTyper){ this._bodyTyper.cancel(); this._bodyTyper = null; }
     document.getElementById('scenarioBody').textContent = scenario.situation;
     const list = document.getElementById('choiceList');
-    list.innerHTML = scenario.choices.map((c,i)=>`
-      <button type="button" class="choice-btn" data-i="${i}">
-        <div class="clabel"><span class="ckey">${i+1}</span> ${esc(c.label)}</div>
-        <div class="csum">${esc(c.summary)}</div>
-      </button>`).join('');
-    list.querySelectorAll('.choice-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const c = scenario.choices[parseInt(btn.dataset.i)];
-        this.commitChoice(c, null, btn);
+    let btns = Array.from(list.querySelectorAll('.choice-btn'));
+    if(btns.length !== scenario.choices.length){
+      list.innerHTML = scenario.choices.map((c,i)=>`
+        <button type="button" class="choice-btn" data-i="${i}">
+          <div class="clabel"><span class="ckey">${i+1}</span> <span class="clabel-text"></span></div>
+          <div class="csum"></div>
+        </button>`).join('');
+      btns = Array.from(list.querySelectorAll('.choice-btn'));
+      btns.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const c = scenario.choices[parseInt(btn.dataset.i)];
+          this.commitChoice(c, null, btn);
+        });
       });
+    }
+    // When the streamed render already built these buttons, they are reused
+    // as-is — only texts are finalized and the disabled state lifted — so the
+    // completed answer swaps in without a flicker.
+    btns.forEach((btn,i)=>{
+      const c = scenario.choices[i]||{};
+      btn.querySelector('.clabel-text').textContent = c.label||'';
+      btn.querySelector('.csum').textContent = c.summary||'';
+      btn.disabled = false;
     });
   },
   keyHandler(e){
+    if(Modal.current) return;
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(!document.getElementById('screen-hud').classList.contains('active')) return;
     const tag = document.activeElement?.tagName;
@@ -1484,11 +2221,39 @@ const Game = {
     const label = customText ? customText : choice.label;
     const summary = customText ? 'A self-written directive from the player.' : choice.summary;
     const scenario = State.currentScenario;
-    document.getElementById('scenarioEyebrow').textContent = 'Writing consequence…';
+    const overlay = document.getElementById('narrativeOverlay');
+    const narrEl = document.getElementById('narrativeText');
+    narrEl.textContent='';
+    if(this._narrTyper) this._narrTyper.cancel();
+    const narrTyper = Typer.run(narrEl);
+    this._narrTyper = narrTyper;
+    let narrLen = 0;
+    document.getElementById('narrativeShifts').innerHTML='';
+    document.getElementById('continueBtn').style.display='none';
+    overlay.classList.add('show');
+    this.elapsed('Writing consequence');
+
+    const applyShifts = (shifts)=>{
+      Config.METRICS.forEach(m=>{
+        const d = shifts[m.key]||0;
+        State.metrics[m.key] = Math.max(0, Math.min(100, State.metrics[m.key]+d));
+      });
+      State.pulseHistory.push(State.pulse());
+      UI.refreshGauges();
+    };
+    const renderChips = (shifts)=>{
+      document.getElementById('narrativeShifts').innerHTML = Config.METRICS.map(m=>{
+        const d = shifts[m.key]||0;
+        const cls = d>0?'up':(d<0?'down':'flat');
+        return `<span class="shift-chip ${cls}">${m.name} ${d>0?'+':''}${d}</span>`;
+      }).join('');
+    };
 
     const onFailed = ()=>{
       // A dropped request must not consume the turn: restore the decision UI
-      // so the player can simply try the same choice again.
+      // so the player can simply try the same choice again. Metrics are only
+      // applied from the COMPLETED answer, so nothing was double-counted.
+      overlay.classList.remove('show');
       document.querySelectorAll('.choice-btn').forEach(b=>{
         b.disabled = false;
         b.classList.remove('dissolving');
@@ -1498,35 +2263,86 @@ const Game = {
     };
 
     try{
-      const result = await AI.callJSONRetry(Prompts.decision(scenario, label, summary), Schemas.decision);
+      // The stream IS the typewriter — but through the typer's frame drain, so
+      // the narrative flows at a steady cadence no matter how the network
+      // bursts. metricShifts tend to arrive before the prose, so the chips
+      // show early feedback while the narrative is still being written.
+      let chipsShown = false;
+      let result = await AI.streamJSON(Prompts.decision(scenario, label, summary), Schemas.decision, (p)=>{
+        if(p && typeof p.narrative==='string' && p.narrative.length > narrLen){
+          narrTyper.push(p.narrative.slice(narrLen));
+          narrLen = p.narrative.length;
+        }
+        if(p && p.metricShifts && !chipsShown){
+          const sh = p.metricShifts;
+          if(Config.METRICS.every(m=>typeof sh[m.key]==='number')){
+            chipsShown = true;
+            renderChips(sh);
+          }
+        }
+      }, 3072);
+      this.stopElapsed();
+      const validShifts = (r)=> !!(r && r.metricShifts && Config.METRICS.every(m=>typeof r.metricShifts[m.key]==='number'));
+      if(!validShifts(result)){
+        // The stream was cut off before every metric arrived (verbose model,
+        // slow connection) — one buffered attempt with a full token budget
+        // before handing the turn back to the player.
+        result = await AI.callJSONRetry(Prompts.decision(scenario, label, summary), Schemas.decision);
+      }
+      if(!validShifts(result)){
+        throw new Error('The consequence arrived incomplete — try again.');
+      }
+      // If the stream died before any prose reached the typer, deliver the
+      // buffered copy so the consequence card is never left speechless.
+      if(narrLen===0 && typeof result.narrative==='string' && result.narrative){
+        narrTyper.push(result.narrative);
+      }
+      // Let the typer drain whatever is left in the background; the Continue
+      // button appears immediately since all fields are already validated.
+      narrTyper.end();
       const shifts = result.metricShifts;
-      Config.METRICS.forEach(m=>{
-        const d = shifts[m.key]||0;
-        State.metrics[m.key] = Math.max(0, Math.min(100, State.metrics[m.key]+d));
-      });
-      State.history.push({headline:scenario.headline, choiceLabel:label, narrative:result.narrative, newsHeadline:result.newsHeadline});
-      State.pulseHistory.push(State.pulse());
-
-      const overlay = document.getElementById('narrativeOverlay');
-      document.getElementById('narrativeText').textContent='';
-      document.getElementById('narrativeShifts').innerHTML='';
-      document.getElementById('continueBtn').style.display='none';
-      overlay.classList.add('show');
-      await UI.typewriter(document.getElementById('narrativeText'), result.narrative, 14);
-      const shiftsWrap = document.getElementById('narrativeShifts');
-      shiftsWrap.innerHTML = Config.METRICS.map(m=>{
-        const d = shifts[m.key]||0;
-        const cls = d>0?'up':(d<0?'down':'flat');
-        return `<span class="shift-chip ${cls}">${m.name} ${d>0?'+':''}${d}</span>`;
-      }).join('');
-      UI.refreshGauges();
+      applyShifts(shifts);
+      renderChips(shifts);
+      State.history.push({headline:scenario.headline, choiceLabel:label, narrative:result.narrative||'', newsHeadline:result.newsHeadline||''});
       const feed = State.history.map(h=>h.newsHeadline).join('   ·   ');
       document.getElementById('tickerInner').textContent = feed + '   ·   ' + feed;
       document.getElementById('continueBtn').style.display='inline-block';
+
+      // Warm the next turn behind the open card — the clock for it has
+      // already advanced; showTurn() reveals it when Continue is pressed.
+      if(State.turn < Config.MAX_TURNS){
+        this.advanceClock();
+        this._prefetch = this.loadScenario(true);
+      }
     }catch(e){
+      this.stopElapsed();
+      narrTyper.cancel();
       UI.toast('Decision failed: '+e.message, 'error');
       onFailed();
     }
+  },
+
+  // Shared advisor fetch. Hover/focus warms the cache silently while the
+  // player reads; a click streams into the panel. Either way the finished
+  // text is cached per scenario and the in-flight promise is shared, so the
+  // same request is never issued twice.
+  getAdvisorText(scenario){
+    const cacheKey = State.turn+'-'+scenario.headline;
+    if(State.advisorCache.has(cacheKey)) return Promise.resolve(State.advisorCache.get(cacheKey));
+    if(this.advisorInflight) return this.advisorInflight;
+    this.advisorInflight = (async ()=>{
+      try{
+        const raw = await AI.advise(Prompts.advisor(scenario), ()=>{});
+        const full = esc(raw);
+        State.advisorCache.set(cacheKey, full);
+        return full;
+      }catch(e){
+        return 'The advisor could not be reached.';
+      }finally{
+        this.advisorInflight = null;
+      }
+    })();
+    return this.advisorInflight;
   },
 
   async consultAdvisor(){
@@ -1539,20 +2355,43 @@ const Game = {
       panel.innerHTML = State.advisorCache.get(cacheKey);
       return;
     }
-    btn.disabled = true;
-    panel.innerHTML = '<span class="acaret"></span>';
-    let full='';
-    try{
-      await AI.advise(Prompts.advisor(State.currentScenario), (chunk)=>{
-        full += chunk;
-        panel.innerHTML = esc(full) + '<span class="acaret"></span>';
-      });
-      panel.innerHTML = esc(full);
-      State.advisorCache.set(cacheKey, esc(full));
-    }catch(e){
-      panel.innerHTML = 'The advisor could not be reached.';
+    if(this.advisorInflight){
+      // A hover-prefetch is already running — ride it instead of doubling up.
+      btn.disabled = true;
+      const full = await this.advisorInflight;
+      btn.disabled = false;
+      panel.innerHTML = full;
+      return;
     }
-    btn.disabled = false;
+    btn.disabled = true;
+    panel.innerHTML = '<span class="atext"></span><span class="acaret"></span>';
+    if(this._advTyper) this._advTyper.cancel();
+    const atext = panel.querySelector('.atext');
+    const advTyper = Typer.run(atext);
+    this._advTyper = advTyper;
+    this.advisorInflight = (async ()=>{
+      try{
+        const raw = await AI.advise(Prompts.advisor(State.currentScenario), (chunk, reset)=>{
+          // A reset flag means the stream died mid-flight and the buffered
+          // fallback is re-delivering the full text — start the drain over.
+          if(reset) advTyper.reset();
+          advTyper.push(chunk);
+        });
+        const full = esc(raw);
+        State.advisorCache.set(cacheKey, full);
+        await advTyper.end();
+        panel.innerHTML = full;
+        return full;
+      }catch(e){
+        advTyper.cancel();
+        panel.innerHTML = 'The advisor could not be reached.';
+        return 'The advisor could not be reached.';
+      }finally{
+        this.advisorInflight = null;
+        btn.disabled = false;
+      }
+    })();
+    await this.advisorInflight;
   },
 
   async runFinalReport(){
