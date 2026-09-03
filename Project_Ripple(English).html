@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Ripple Effect</title>
+<meta name="description" content="An AI-generated consequence simulator set in Deoghar, India. Choose a role, shape five decisive years, and read the world you leave behind.">
+<meta name="theme-color" content="#07090D">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="The Ripple Effect">
+<meta property="og:description" content="An AI-generated consequence simulator set in Deoghar, India — every choice is a stone, every consequence a ripple.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307090D'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%233ED9C4'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%233ED9C4' stroke-opacity='.55' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%233ED9C4' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --ink:#07090D;
+  --panel:#0B1220;
+  --panel-2:#0F1830;
+  --panel-3:#121d38;
+  --line:rgba(234,240,239,0.09);
+  --line-strong:rgba(234,240,239,0.16);
+  --text:#EAF0EF;
+  --text-dim:#8592A1;
+  --text-faint:#57626e;
+  --cool:#3ED9C4;
+  --warm:#E4634C;
+  --gold:#C9A24B;
+  --rose:#F0729A;
+  --periwinkle:#8FA6FF;
+  --amber:#FFB454;
+  --radius-sm:9px;
+  --radius-md:16px;
+  --radius-lg:26px;
+  --ease:cubic-bezier(.16,.84,.32,1);
+  --ease-in:cubic-bezier(.6,0,.4,1);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--ink); color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  overflow:hidden; -webkit-font-smoothing:antialiased;
+  cursor:default;
+}
+::selection{background:var(--cool); color:var(--ink);}
+::-webkit-scrollbar{width:6px; height:6px;}
+::-webkit-scrollbar-thumb{background:var(--line-strong); border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+a,button,input,select,textarea{font-family:inherit;}
+button{cursor:pointer;}
+:focus-visible{outline:2px solid var(--cool); outline-offset:3px; border-radius:4px;}
+
+.serif{font-family:'Instrument Serif',serif;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+/* Full-screen sections receive programmatic focus on transition; the section
+   itself must never show the global focus ring. */
+.screen:focus{outline:none;}
+
+.credits-name,.role-title,.setup-title,.report-title,.scenario-head,.cine-line,.narrative-text{
+  text-wrap:balance;
+}
+
+/* ============================= BACKDROP ============================= */
+#current{position:fixed; inset:0; width:100%; height:100%; z-index:0;}
+#grain{
+  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.05;
+  mix-blend-mode:overlay;
+}
+#vignette{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(3,4,7,.72) 100%);
+}
+
+/* ============================= SCREEN SYSTEM ============================= */
+#app{position:relative; z-index:2; width:100vw; height:100vh; height:100dvh;}
+.screen{
+  position:absolute; inset:0; display:flex;
+  align-items:center; justify-content:center;
+  flex-direction:column;
+  opacity:0; visibility:hidden; pointer-events:none; z-index:1;
+  transition:opacity .6s var(--ease-in), visibility 0s linear .6s;
+}
+.screen.active{
+  opacity:1; visibility:visible; pointer-events:auto; z-index:3;
+  transition:opacity .75s var(--ease), visibility 0s linear 0s;
+}
+.screen.active.leaving{
+  opacity:0; pointer-events:none; z-index:2;
+  transition:opacity .6s var(--ease-in), visibility 0s linear 0s;
+}
+.screen.enter{animation:screenIn .9s var(--ease) forwards;}
+@keyframes screenIn{from{transform:translateY(14px);} to{transform:translateY(0);}}
+
+/* ============================= CREDITS / TITLE CARD ============================= */
+.credits-wrap{
+  position:relative; z-index:3; text-align:center; max-width:560px; padding:0 24px;
+}
+.credits-rule{
+  width:56px; height:1px; margin:0 auto 24px;
+  background:linear-gradient(90deg, transparent, var(--line-strong), transparent);
+}
+.credits-kicker{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.32em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:18px;
+  opacity:0; animation:creditsIn .8s var(--ease) forwards;
+}
+.credits-name{
+  font-family:'Instrument Serif',serif; font-style:italic; font-weight:400;
+  font-size:clamp(36px,7vw,64px); margin:0 0 30px; color:var(--text);
+  opacity:0; animation:creditsIn .8s var(--ease) .15s forwards;
+}
+.credits-meta{
+  display:flex; flex-direction:column; gap:12px; margin-bottom:38px;
+  opacity:0; animation:creditsIn .8s var(--ease) .35s forwards;
+}
+.credits-row{
+  display:flex; justify-content:space-between; align-items:baseline; gap:18px;
+  padding-bottom:10px; border-bottom:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+}
+.credits-row span{color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; white-space:nowrap;}
+.credits-row strong{color:var(--text); font-weight:500; text-align:right;}
+.credits-hint{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--text-dim);
+  opacity:0; animation:creditsIn .8s var(--ease) .6s forwards, hintPulse 3.4s ease-in-out 1.4s infinite;
+}
+@keyframes creditsIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+/* ============================= INTRO / POND ============================= */
+#screen-intro{cursor:none;}
+.pond-mark{
+  position:absolute; top:34px; left:0; right:0; z-index:3; text-align:center;
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.44em;
+  text-transform:uppercase; color:var(--text-faint); pointer-events:none;
+}
+.pond-hint{
+  position:relative; z-index:3; text-align:center; pointer-events:none;
+  animation:hintPulse 3.4s ease-in-out infinite;
+}
+@keyframes hintPulse{0%,100%{opacity:.55;} 50%{opacity:1;}}
+.pond-hint .eyebrow{
+  font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.32em;
+  text-transform:uppercase; color:var(--text-dim); margin-bottom:14px;
+}
+.ripple-title-stage{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none;}
+.ripple-ring{
+  position:absolute; left:50%; top:50%; width:600px; height:600px;
+  border:1px solid var(--cool); border-radius:50%; opacity:0;
+  transform:translate(-50%,-50%) scale(.0233);
+  animation:ringOut 7.2s var(--ease-in) infinite;
+}
+.ripple-ring:nth-child(2){animation-delay:2.4s;}
+.ripple-ring:nth-child(3){animation-delay:4.8s;}
+@keyframes ringOut{
+  0%{opacity:.55; transform:translate(-50%,-50%) scale(.0233);}
+  65%{opacity:.1;}
+  100%{opacity:0; transform:translate(-50%,-50%) scale(1);}
+}
+.ripple-title{
+  position:relative; margin:0; font-family:'Instrument Serif',serif; font-style:italic;
+  font-weight:400; font-size:clamp(30px,6vw,60px); color:var(--text);
+  animation:titleWave 6s ease-in-out infinite;
+}
+/* Animated SVG turbulence filters are cheap on desktop but are a known cause of
+   hangs/freezes on mobile browsers (especially iOS Safari) when applied via CSS
+   `filter:url()` to an HTML element, so this only runs on devices with a precise
+   pointer and enough screen space — i.e. not phones or tablets. */
+@media (prefers-reduced-motion: no-preference) and (hover:hover) and (pointer:fine) and (min-width:820px){
+  .ripple-title{filter:url(#rippleDistort);}
+}
+@keyframes titleWave{0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);}}
+.pond-cta{
+  font-family:'IBM Plex Mono',monospace; font-size:11px;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--text-dim);
+}
+.pond-cursor{
+  position:fixed; width:26px; height:26px; border:1px solid var(--cool);
+  border-radius:50%; pointer-events:none; z-index:5; transform:translate(-50%,-50%);
+  transition:width .25s var(--ease), height .25s var(--ease), opacity .25s;
+  mix-blend-mode:screen;
+}
+.pond-cursor::after{
+  content:''; position:absolute; inset:0; margin:auto; width:3px; height:3px;
+  background:var(--cool); border-radius:50%;
+}
+
+/* ============================= CINEMATIC ============================= */
+.cine-line{
+  position:absolute; text-align:center; max-width:720px; padding:0 24px;
+  font-family:'Instrument Serif',serif; font-style:italic; font-weight:400;
+  font-size:clamp(22px,3.6vw,36px); color:var(--text); opacity:0; line-height:1.4;
+}
+.title-reveal{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline;
+  row-gap:.08em; column-gap:.32em;
+}
+.reveal-word{display:inline-flex; gap:0 .02em;}
+.title-reveal span{
+  display:inline-block; font-family:'Space Grotesk',sans-serif; font-weight:700;
+  font-size:clamp(34px,7.4vw,96px); letter-spacing:.01em; opacity:0;
+  transform:translateY(.4em);
+  background:linear-gradient(180deg,#fff,var(--cool) 140%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.title-sub{
+  font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.34em;
+  text-transform:uppercase; color:var(--text-dim); margin-top:18px; opacity:0;
+}
+
+/* ============================= SETUP ============================= */
+.panel-card{
+  position:relative; overflow:hidden;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
+  padding:44px; width:min(480px,90vw);
+}
+.panel-card::before{
+  content:''; position:absolute; top:0; left:28px; right:28px; height:1px;
+  background:linear-gradient(90deg, transparent, rgba(62,217,196,.55), transparent);
+}
+.setup-title{font-family:'Instrument Serif',serif; font-style:italic; font-size:30px; margin:0 0 6px;}
+.setup-sub{color:var(--text-dim); font-size:14px; margin:0 0 28px; line-height:1.6;}
+.field-label{
+  font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:8px;
+}
+.field-row{position:relative; margin-bottom:18px;}
+.field-input{
+  width:100%; background:rgba(255,255,255,.03); border:1px solid var(--line-strong);
+  border-radius:var(--radius-sm); padding:13px 44px 13px 14px; color:var(--text);
+  font-size:14px; font-family:'IBM Plex Mono',monospace;
+  transition:border-color .2s, box-shadow .2s;
+}
+.field-input:focus{border-color:var(--cool); box-shadow:0 0 0 3px rgba(62,217,196,.14); outline:none;}
+.field-toggle{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--text-faint); font-size:14px;
+  transition:color .2s;
+}
+.field-toggle:hover{color:var(--cool);}
+.setup-key-note{
+  display:flex; align-items:center; gap:8px; margin:14px 0 26px; font-size:11.5px;
+  color:var(--text-faint); line-height:1.5;
+}
+.setup-key-note i{color:var(--cool); font-size:12px; flex-shrink:0;}
+.btn-primary{
+  width:100%; color:#04211c; border:none; border-radius:12px;
+  padding:15px; font-weight:600; font-size:14.5px; letter-spacing:.01em;
+  background:linear-gradient(180deg,#4EE6D1,#2FC7B2);
+  box-shadow:0 14px 34px -12px rgba(62,217,196,.55), inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .18s var(--ease), box-shadow .18s, filter .18s;
+}
+.btn-primary:hover{transform:translateY(-2px); filter:brightness(1.05);}
+.btn-primary:active{transform:translateY(0); filter:brightness(.97);}
+.btn-primary:disabled{opacity:.5; cursor:not-allowed; transform:none; filter:none;}
+.setup-foot{font-size:11px; color:var(--text-faint); margin-top:16px; text-align:center; line-height:1.6;}
+.setup-foot a{color:var(--text-dim);}
+
+/* ============================= ROLE SELECT ============================= */
+#screen-role .role-wrap{width:min(980px,92vw); text-align:center;}
+.role-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.28em; color:var(--text-dim); text-transform:uppercase;}
+.role-title{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(26px,4vw,40px); margin:8px 0 40px;}
+.role-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px;}
+@media(max-width:900px){.role-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.role-grid{grid-template-columns:1fr;}}
+.role-card{
+  appearance:none;
+  background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:var(--radius-md);
+  padding:26px 18px; text-align:left; color:var(--text); position:relative; overflow:hidden;
+  transition:transform .3s var(--ease), border-color .3s, background .3s, box-shadow .3s;
+}
+.role-card:hover, .role-card:focus-visible{
+  transform:translateY(-6px); border-color:var(--role-c,var(--cool));
+  background:rgba(255,255,255,.045);
+  box-shadow:0 24px 48px -24px color-mix(in srgb, var(--role-c,var(--cool)) 45%, transparent);
+}
+.role-card .ricon{
+  width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  background:rgba(62,217,196,0.15);
+  background:color-mix(in srgb, var(--role-c,var(--cool)) 18%, transparent);
+  color:var(--role-c,var(--cool)); font-size:16px; margin-bottom:16px;
+}
+.role-card .rname{display:block; font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600; margin-bottom:6px;}
+.role-card .rdesc{display:block; font-size:12.5px; color:var(--text-dim); line-height:1.55;}
+.role-card .ridx{
+  position:absolute; top:20px; right:18px; font-family:'IBM Plex Mono',monospace;
+  font-size:10px; letter-spacing:.14em; color:var(--text-faint); transition:color .3s;
+}
+.role-card:hover .ridx, .role-card:focus-visible .ridx{color:var(--role-c,var(--cool));}
+.role-card .rgo{
+  position:absolute; right:18px; bottom:22px; font-size:11px; color:var(--role-c,var(--cool));
+  opacity:0; transform:translateX(-6px); transition:opacity .3s var(--ease), transform .3s var(--ease);
+}
+.role-card:hover .rgo, .role-card:focus-visible .rgo{opacity:1; transform:translateX(0);}
+.role-card .rbar{position:absolute; left:0; bottom:0; height:2px; width:100%; background:var(--role-c,var(--cool)); opacity:.35;}
+
+/* ============================= HUD ============================= */
+#screen-hud{align-items:stretch; justify-content:stretch;}
+.hud-grid{
+  display:grid; grid-template-columns:280px 1fr 380px; gap:1px;
+  width:100vw; height:100vh; height:100dvh; background:var(--line);
+}
+@media(max-width:1100px){
+  .hud-grid{grid-template-columns:1fr; grid-template-rows:auto minmax(280px,auto) auto; overflow-y:auto;}
+  .world-pane{min-height:280px;}
+}
+.hud-pane{background:rgba(7,9,13,.62); backdrop-filter:blur(18px); padding:22px; overflow-y:auto;}
+@media (max-width:720px){
+  .hud-pane{backdrop-filter:blur(8px);}
+}
+.hud-top{display:flex; align-items:center; gap:12px; margin-bottom:22px;}
+.hud-home-btn{
+  background:none; border:1px solid var(--line-strong); color:var(--text-dim);
+  border-radius:var(--radius-sm); width:32px; height:32px; display:flex;
+  align-items:center; justify-content:center; font-size:13px; transition:all .2s;
+  flex-shrink:0;
+}
+.hud-home-btn:hover{border-color:var(--cool); color:var(--cool);}
+.hud-brand{font-family:'Instrument Serif',serif; font-style:italic; font-size:18px; margin-right:auto;}
+.hud-meta{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:.08em;}
+
+.pulse-block{text-align:left; margin-bottom:26px;}
+.pulse-num{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:52px; line-height:1; letter-spacing:-.02em;}
+.pulse-label{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-dim); margin-top:6px;}
+.turn-dots{display:flex; gap:6px; margin:-14px 0 26px;}
+.tdot{width:22px; height:3px; border-radius:2px; background:var(--line-strong); transition:background .5s var(--ease);}
+.tdot.on{background:var(--cool);}
+
+.gauge-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+.gauge-row svg{flex-shrink:0; transform:rotate(-90deg);}
+.gauge-track{fill:none; stroke:var(--line-strong); stroke-width:4;}
+.gauge-fill{fill:none; stroke-width:4; stroke-linecap:round; transition:stroke-dashoffset .9s var(--ease);}
+.gauge-info{flex:1;}
+.gauge-info .gname{font-size:12px; color:var(--text-dim); display:flex; justify-content:space-between;}
+.gauge-info .gval{font-family:'IBM Plex Mono',monospace; color:var(--text); font-size:12px;}
+
+.calls-counter{
+  margin-top:auto; padding-top:18px; border-top:1px solid var(--line);
+  font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text-faint);
+  display:flex; justify-content:space-between;
+}
+
+.world-pane{position:relative; display:flex; flex-direction:column; justify-content:flex-end;}
+.world-canvas-wrap{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; pointer-events:none;}
+.turn-tag{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--text-dim);}
+.year-num{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(50px,9vw,120px); margin:6px 0;}
+.ticker{
+  position:relative; z-index:2; border-top:1px solid var(--line); padding:14px 22px;
+  font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-dim);
+  white-space:nowrap; display:flex; align-items:center; gap:14px;
+}
+.ticker-label{
+  flex-shrink:0; color:var(--cool); font-size:10px; letter-spacing:.22em;
+  text-transform:uppercase; padding-right:14px; border-right:1px solid var(--line);
+}
+/* The scrolling wire scrolls inside its own clipping box, so it can never
+   paint over the label when it passes the left edge. */
+.ticker-viewport{flex:1; overflow:hidden; min-width:0;}
+.ticker-inner{display:inline-block; padding-left:100%; animation:tick 26s linear infinite;}
+@keyframes tick{from{transform:translateX(0);} to{transform:translateX(-100%);}}
+
+.scenario-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--cool); margin-bottom:10px;}
+.scenario-head{font-family:'Instrument Serif',serif; font-style:italic; font-size:22px; margin:0 0 12px; line-height:1.3;}
+.scenario-body{font-size:13.5px; color:var(--text-dim); line-height:1.7; margin-bottom:22px;}
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,.03),rgba(255,255,255,.08),rgba(255,255,255,.03)); background-size:200% 100%; animation:shine 1.4s linear infinite; border-radius:6px;}
+@keyframes shine{to{background-position:-200% 0;}}
+
+.choice-btn{
+  display:block; width:100%; text-align:left; background:rgba(255,255,255,.025);
+  border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:15px 16px;
+  margin-bottom:10px; color:var(--text); transition:all .2s var(--ease); position:relative;
+}
+.choice-btn:hover, .choice-btn:focus-visible{border-color:var(--cool); background:rgba(62,217,196,.06); transform:translateX(3px);}
+.choice-btn .clabel{font-weight:600; font-size:13.5px; margin-bottom:4px; display:flex; gap:8px; align-items:baseline;}
+.choice-btn .clabel .ckey{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--cool); border:1px solid var(--cool); border-radius:4px; padding:1px 5px; flex-shrink:0;}
+.choice-btn .csum{font-size:12px; color:var(--text-dim); line-height:1.5;}
+.choice-btn.dissolving{animation:dissolve .55s var(--ease-in) forwards;}
+@keyframes dissolve{to{opacity:0; transform:translateX(30px) scale(.94); filter:blur(4px);}}
+.choice-btn:disabled{pointer-events:none;}
+
+.directive-box{margin-top:18px;}
+.directive-box textarea{
+  width:100%; background:rgba(255,255,255,.025); border:1px solid var(--line-strong);
+  border-radius:var(--radius-sm); padding:12px 14px; color:var(--text); font-size:12.5px;
+  font-family:'Space Grotesk',sans-serif; resize:none; min-height:56px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.directive-box textarea:focus{border-color:var(--cool); box-shadow:0 0 0 3px rgba(62,217,196,.14); outline:none;}
+.directive-box button{
+  margin-top:8px; background:none; border:1px solid var(--line-strong); color:var(--text-dim);
+  border-radius:var(--radius-sm); padding:9px 14px; font-size:12px; float:right;
+  transition:all .2s;
+}
+.directive-box button:hover{border-color:var(--gold); color:var(--gold);}
+.directive-box button:disabled{opacity:.5; cursor:not-allowed;}
+
+.advisor-toggle{
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  background:none; border:1px dashed var(--line-strong); border-radius:var(--radius-sm);
+  padding:11px; color:var(--text-dim); font-size:12px; margin-top:20px; transition:all .2s;
+}
+.advisor-toggle:hover{border-color:var(--periwinkle); color:var(--periwinkle);}
+.advisor-toggle:disabled{opacity:.5; cursor:wait;}
+.advisor-panel{
+  margin-top:14px; border-left:2px solid var(--periwinkle); padding:12px 14px;
+  background:rgba(143,166,255,.05); font-size:12.5px; line-height:1.65; color:var(--text);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0; min-height:20px;
+}
+.advisor-panel .acaret{display:inline-block; width:7px; height:13px; background:var(--periwinkle); vertical-align:middle; animation:blink 1s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
+
+.narrative-overlay{
+  position:absolute; inset:0; z-index:5; background:rgba(4,5,8,.88); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; padding:40px; opacity:0; pointer-events:none;
+}
+.narrative-overlay.show{opacity:1; pointer-events:all; transition:opacity .4s;}
+.narrative-card{max-width:560px; text-align:center;}
+.narrative-overlay.show .narrative-card{animation:narrIn .5s var(--ease) both;}
+@keyframes narrIn{from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:none;}}
+.narrative-tag{font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.24em; text-transform:uppercase; color:var(--gold); margin-bottom:14px;}
+.narrative-text{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(18px,2.6vw,26px); line-height:1.6; min-height:2em;}
+.narrative-shifts{display:flex; gap:14px; justify-content:center; margin:26px 0; flex-wrap:wrap;}
+.shift-chip{font-family:'IBM Plex Mono',monospace; font-size:12px; padding:6px 12px; border-radius:20px; border:1px solid var(--line-strong);}
+.shift-chip.up{color:var(--cool); border-color:var(--cool);}
+.shift-chip.down{color:var(--warm); border-color:var(--warm);}
+.shift-chip.flat{color:var(--text-faint);}
+
+/* ============================= TIMEJUMP ============================= */
+.timejump-text{text-align:center;}
+.timejump-year{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(60px,10vw,140px); opacity:.9;}
+.timejump-sub{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-dim);}
+
+/* ============================= REPORT ============================= */
+#screen-report{align-items:flex-start; overflow-y:auto; padding:60px 24px; scrollbar-gutter:stable;}
+.report-wrap{width:min(1040px,94vw); margin:0 auto;}
+.report-head{text-align:center; margin-bottom:28px;}
+.report-role-badge{
+  width:52px; height:52px; border-radius:50%; margin:0 auto 16px;
+  display:flex; align-items:center; justify-content:center; font-size:19px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line-strong);
+}
+.report-eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.28em; color:var(--gold); text-transform:uppercase;}
+.report-title{font-family:'Instrument Serif',serif; font-style:italic; font-size:clamp(30px,5vw,50px); margin:10px 0;}
+.legacy-score-ring{position:relative; width:144px; height:144px; margin:20px auto 0;}
+.legacy-score-ring svg{width:100%; height:100%; transform:rotate(-90deg);}
+.score-ring-track{fill:none; stroke:var(--line-strong); stroke-width:6;}
+.score-ring-fill{fill:none; stroke:var(--gold); stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset 1.1s var(--ease);}
+.legacy-score{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:44px; color:var(--gold);
+}
+.report-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:26px;}
+@media(max-width:800px){.report-grid{grid-template-columns:1fr;}}
+.report-card{
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line); border-radius:var(--radius-md); padding:26px;
+  opacity:0; transform:translateY(14px); animation:reportCardIn .7s var(--ease) forwards;
+}
+@keyframes reportCardIn{to{opacity:1; transform:translateY(0);}}
+.report-card h4{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--text-dim); margin:0 0 16px;}
+.report-card ul{margin:0; padding-left:18px; font-size:13.5px; line-height:1.8; color:var(--text);}
+.outcome-list{list-style:none !important; padding-left:0 !important;}
+.outcome-list li{display:flex; gap:10px; align-items:flex-start; margin-bottom:12px;}
+.outcome-list li:last-child{margin-bottom:0;}
+.outcome-list li i{flex-shrink:0; margin-top:3px; font-size:12px;}
+.outcome-list.strengths li i{color:var(--cool);}
+.outcome-list.risks li i{color:var(--warm);}
+.chart-box{position:relative; height:240px; width:100%;}
+.epilogue{font-family:'Instrument Serif',serif; font-style:italic; font-size:19px; line-height:1.8; text-align:center; margin:8px 0 36px; color:var(--text);}
+.timeline{list-style:none; margin:0; padding:0;}
+.timeline li{border-left:2px solid var(--line-strong); padding:0 0 18px 18px; position:relative; font-size:12.5px; color:var(--text-dim);}
+.timeline li::before{content:''; position:absolute; left:-5px; top:2px; width:8px; height:8px; border-radius:50%; background:var(--gold);}
+.timeline li strong{display:block; color:var(--text); font-size:13px; margin-bottom:3px;}
+.report-actions{display:flex; gap:12px; justify-content:center; margin-top:36px; flex-wrap:wrap;}
+.btn-ghost{background:none; border:1px solid var(--line-strong); color:var(--text); border-radius:var(--radius-sm); padding:13px 22px; font-size:13px; transition:all .2s;}
+.btn-ghost:hover{border-color:var(--cool); color:var(--cool); background:rgba(255,255,255,.03);}
+
+/* ============================= TOASTS ============================= */
+#toasts{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:50; display:flex; flex-direction:column; gap:8px; align-items:center;}
+.toast{
+  background:var(--panel-2); border:1px solid var(--line-strong); border-radius:30px; padding:10px 18px;
+  font-size:12.5px; box-shadow:0 10px 30px rgba(0,0,0,.5); animation:toastIn .3s var(--ease);
+  max-width:min(480px,90vw); text-align:center;
+}
+.toast.error{border-color:var(--warm); color:var(--warm);}
+.toast.success{border-color:var(--cool); color:var(--cool);}
+@keyframes toastIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+.fade-enter{opacity:0;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="current" aria-hidden="true"></canvas>
+<svg id="grain" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
+<svg width="0" height="0" style="position:absolute;overflow:hidden;" aria-hidden="true">
+  <defs>
+    <filter id="rippleDistort" x="-40%" y="-40%" width="180%" height="180%">
+      <feTurbulence type="fractalNoise" numOctaves="2" seed="4" result="noise">
+        <animate attributeName="baseFrequency" values="0.01 0.03;0.018 0.045;0.01 0.03" dur="7s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+<div id="vignette" aria-hidden="true"></div>
+<div class="pond-cursor" id="pondCursor" style="display:none;" aria-hidden="true"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<div id="app">
+
+  <!-- SCREEN: CREDITS / TITLE CARD -->
+  <section class="screen active" id="screen-credits" tabindex="-1">
+    <div class="credits-wrap">
+      <div class="credits-rule" aria-hidden="true"></div>
+      <div class="credits-kicker">A Project By</div>
+      <h1 class="credits-name">Abhigyan Aditya</h1>
+      <div class="credits-meta">
+        <div class="credits-row"><span>School</span><strong>Saint Francis School, Jasidih</strong></div>
+        <div class="credits-row"><span>Class</span><strong>10</strong></div>
+        <div class="credits-row"><span>Built With</span><strong>HTML5 &middot; CSS3 &middot; JavaScript &middot; Gemini API &middot; Chart.js</strong></div>
+      </div>
+      <div class="credits-hint">Click or tap anywhere to continue</div>
+    </div>
+  </section>
+
+  <!-- SCREEN: INTRO / POND -->
+  <section class="screen" id="screen-intro" tabindex="-1">
+    <div class="pond-mark" aria-hidden="true">The Ripple Effect</div>
+    <div class="pond-hint">
+      <div class="ripple-title-stage" aria-hidden="true">
+        <span class="ripple-ring"></span>
+        <span class="ripple-ring"></span>
+        <span class="ripple-ring"></span>
+      </div>
+      <div class="pond-cta">Touch the water to begin.</div>
+    </div>
+  </section>
+
+  <!-- SCREEN: CINEMATIC -->
+  <section class="screen" id="screen-cine" tabindex="-1"></section>
+
+  <!-- SCREEN: SETUP -->
+  <section class="screen" id="screen-setup" tabindex="-1">
+    <div class="panel-card">
+      <h2 class="setup-title">Enter Deoghar</h2>
+      <p class="setup-sub">This world is generated live by Gemini, using a key you provide. It's kept only in your browser and sent only to Google — never to us, never hardcoded, never bundled with this file.</p>
+
+      <label class="field-label" for="apiKeyInput">Gemini API key</label>
+      <div class="field-row">
+        <input type="password" id="apiKeyInput" class="field-input" placeholder="Paste your Gemini API key here" autocomplete="off" spellcheck="false">
+        <button type="button" class="field-toggle" id="toggleKeyVis" aria-label="Show key"><i class="fa-solid fa-eye"></i></button>
+      </div>
+
+      <p class="setup-key-note"><i class="fa-solid fa-shield-halved"></i> Your key stays on this device and is remembered automatically for next time.</p>
+
+      <button class="btn-primary" id="enterBtn" disabled>Continue</button>
+      <p class="setup-foot">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>. Actual usage limits are set by your Google account, not by this page.</p>
+    </div>
+  </section>
+
+  <!-- SCREEN: ROLE SELECT -->
+  <section class="screen" id="screen-role" tabindex="-1">
+    <div class="role-wrap">
+      <div class="role-eyebrow">Choose your vantage</div>
+      <h2 class="role-title">Every ripple starts from somewhere.</h2>
+      <div class="role-grid" id="roleGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: HUD -->
+  <section class="screen" id="screen-hud" tabindex="-1">
+    <div class="hud-grid">
+
+      <div class="hud-pane" id="leftPane">
+        <div class="hud-top">
+          <button type="button" class="hud-home-btn" id="homeBtn" aria-label="Back to home"><i class="fa-solid fa-house"></i></button>
+          <div class="hud-brand">Ripple</div>
+          <div class="hud-meta" id="roleTag">—</div>
+        </div>
+        <div class="pulse-block">
+          <div class="pulse-num" id="pulseNum">50</div>
+          <div class="pulse-label">World Pulse</div>
+        </div>
+        <div class="turn-dots" id="turnDots" aria-hidden="true"></div>
+        <div id="gaugeList"></div>
+        <div class="calls-counter">
+          <span>AI calls this run</span>
+          <span id="callCount" class="mono">0</span>
+        </div>
+      </div>
+
+      <div class="hud-pane world-pane" id="worldPane" style="padding:0;">
+        <div class="world-canvas-wrap">
+          <div class="turn-tag" id="turnTag">Turn 1 / 5</div>
+          <div class="year-num" id="yearNum">2026</div>
+        </div>
+        <div class="ticker">
+          <span class="ticker-label">Deoghar Wire</span>
+          <div class="ticker-viewport"><div class="ticker-inner" id="tickerInner">Awaiting first ripple…</div></div>
+        </div>
+        <div class="narrative-overlay" id="narrativeOverlay">
+          <div class="narrative-card">
+            <div class="narrative-tag">Consequence</div>
+            <div class="narrative-text" id="narrativeText" aria-live="polite"></div>
+            <div class="narrative-shifts" id="narrativeShifts"></div>
+            <button class="btn-primary" id="continueBtn" style="width:auto; padding:12px 30px;">Continue</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-pane" id="rightPane">
+        <div class="scenario-eyebrow" id="scenarioEyebrow">Generating scenario…</div>
+        <h3 class="scenario-head" id="scenarioHead"></h3>
+        <p class="scenario-body" id="scenarioBody"></p>
+        <div id="choiceList"></div>
+
+        <div class="directive-box" id="directiveBox">
+          <label class="field-label" for="directiveInput">Or write your own directive</label>
+          <textarea id="directiveInput" maxlength="300" placeholder="Describe the decision you'd make instead…"></textarea>
+          <button type="button" id="directiveSubmit">Commit directive</button>
+          <div style="clear:both;"></div>
+        </div>
+
+        <button class="advisor-toggle" id="advisorToggle"><i class="fa-solid fa-compass"></i> Consult advisor</button>
+        <div class="advisor-panel" id="advisorPanel" style="display:none;" aria-live="polite"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SCREEN: TIMEJUMP -->
+  <section class="screen" id="screen-timejump" tabindex="-1">
+    <div class="timejump-text">
+      <div class="timejump-year" id="tjYear">2026</div>
+      <div class="timejump-sub" id="tjSub">Time is passing…</div>
+    </div>
+  </section>
+
+  <!-- SCREEN: REPORT -->
+  <section class="screen" id="screen-report" tabindex="-1">
+    <div class="report-wrap">
+      <div class="report-head">
+        <div class="report-role-badge" id="reportRoleBadge"><i class="fa-solid fa-city"></i></div>
+        <div class="report-eyebrow" id="reportRole">Legacy Report</div>
+        <h2 class="report-title" id="reportTitle">—</h2>
+        <div class="legacy-score-ring">
+          <svg viewBox="0 0 100 100">
+            <circle class="score-ring-track" cx="50" cy="50" r="44"></circle>
+            <circle class="score-ring-fill" id="scoreRingFill" cx="50" cy="50" r="44"></circle>
+          </svg>
+          <div class="legacy-score" id="legacyScore">—</div>
+        </div>
+      </div>
+      <p class="epilogue" id="reportEpilogue"></p>
+      <div class="report-grid">
+        <div class="report-card" style="animation-delay:.05s;"><h4>Charted world</h4><div class="chart-box"><canvas id="radarChart"></canvas></div></div>
+        <div class="report-card" style="animation-delay:.12s;"><h4>Pulse over time</h4><div class="chart-box"><canvas id="lineChart"></canvas></div></div>
+      </div>
+      <div class="report-grid">
+        <div class="report-card" style="animation-delay:.19s;"><h4>Strengths you built</h4><ul class="outcome-list strengths" id="strengthsList"></ul></div>
+        <div class="report-card" style="animation-delay:.26s;"><h4>Risks left unresolved</h4><ul class="outcome-list risks" id="risksList"></ul></div>
+      </div>
+      <div class="report-card" style="margin-top:22px; animation-delay:.33s;">
+        <h4>How it unfolded</h4>
+        <ul class="timeline" id="timelineList"></ul>
+      </div>
+      <div class="report-actions">
+        <button class="btn-ghost" id="copySummaryBtn"><i class="fa-solid fa-copy"></i>&nbsp; Copy summary</button>
+        <button class="btn-ghost" id="restartBtn"><i class="fa-solid fa-rotate-left"></i>&nbsp; Run again, same key</button>
+        <button class="btn-ghost" id="newKeyBtn"><i class="fa-solid fa-key"></i>&nbsp; Use a different key</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+============================================================ */
+const Config = {
+  MAX_TURNS: 5,
+  START_YEAR: 2026,
+  // Gemini 3.6 Flash: GA since July 2026, balanced speed/quality/cost, no
+  // billing required for the free tier — the right default for a scenario +
+  // JSON-schema simulator like this one. Chosen automatically so players never
+  // have to pick a model. If Google ever retires the pinned id, AI.request
+  // silently moves to the maintained `gemini-flash-latest` alias.
+  RECOMMENDED_MODEL: 'gemini-3.6-flash',
+  METRICS: [
+    {key:'environment', name:'Environment', icon:'fa-leaf', color:'#3ED9C4'},
+    {key:'economy',      name:'Economy',      icon:'fa-coins', color:'#C9A24B'},
+    {key:'health',       name:'Health',       icon:'fa-heart-pulse', color:'#F0729A'},
+    {key:'community',    name:'Community',    icon:'fa-people-group', color:'#8FA6FF'},
+    {key:'innovation',   name:'Innovation',   icon:'fa-bolt', color:'#FFB454'}
+  ],
+  ROLES: [
+    {id:'mayor', name:'Mayor of Deoghar', icon:'fa-city', color:'#3ED9C4',
+      desc:'You lead the Deoghar Municipal Corporation — a temple town of two lakh residents that swells by millions every Shravan, caught between Baba Baidyanath Dham\'s pilgrim economy and the everyday city underneath it.',
+      start:{environment:40, economy:52, health:54, community:60, innovation:32}},
+    {id:'founder', name:'Founder of a Deoghar-Based Tech Startup', icon:'fa-microchip', color:'#FFB454',
+      desc:'You are building a startup out of Deoghar itself, betting that the new airport, the highway links, and Jharkhand\'s push for small-town investment can out-run the pull of Ranchi, Bengaluru, and Delhi.',
+      start:{environment:38, economy:56, health:46, community:40, innovation:72}},
+    {id:'citizen', name:'Everyday Citizen', icon:'fa-user', color:'#8FA6FF',
+      desc:'You hold no office and no equity — just a home a few lanes from the Baidyanath temple, a vote, and a town you love, lived in around the rhythms of the Kanwariyas and the Mela.',
+      start:{environment:46, economy:44, health:50, community:58, innovation:38}},
+    {id:'student', name:'Student', icon:'fa-graduation-cap', color:'#F0729A',
+      desc:'You are finishing school in Deoghar, weighing NEET or JEE coaching, family expectations, and whether your future is built here — in a district with a literacy rate near 63% — or somewhere else entirely.',
+      start:{environment:44, economy:36, health:52, community:54, innovation:46}}
+  ]
+};
+
+/* ============================================================
+   WORLD CONTEXT — grounds every AI-generated beat in real Deoghar
+   detail so scenarios, consequences, and the legacy report never
+   drift into generic filler.
+============================================================ */
+const WORLD_CONTEXT = `World setting: Deoghar, headquarters of Deoghar district in the Santhal Pargana region of Jharkhand, India — a temple town of roughly two lakh residents (district population approaching 19 lakh) built around Baba Baidyanath Dham, one of Hinduism's twelve Jyotirlingas. Real texture to draw on, specifically and by name where relevant: the Shravani Mela, held through the month of Shravan (July-August), when several million barefoot Kanwariya pilgrims — "Dak Bam" and "Bol Bam" — walk over 100km from Sultanganj chanting "Bol Bam" to offer Ganga Jal at the temple, called the world's longest religious fair; Jasidih Junction, the district's main railhead, a few kilometres from the temple; Deoghar Airport (opened 2022, small, pilgrim-focused, serving Delhi and Kolkata via IndiGo under the UDAN scheme, its terminal shaped like the temple); AIIMS Deoghar, a young government medical college and hospital carrying real weight for a district with thin healthcare infrastructure; the Deoghar Municipal Corporation, headed by an elected Mayor and ward councillors under the Jharkhand Municipal Act, 2011; the Trikut Parvat ropeway, closed since a fatal 2022 accident and still not reopened, a live sore point for tourism; Nandan Pahar hill park, Naulakha Mandir, Tapovan and the Satsang Ashram as other pilgrim and tourist sites; Deoghar College (affiliated to Sido Kanhu Murmu University) and Ramakrishna Mission Vidyapith as respected local institutions, against a district literacy rate near 63% and real gaps between the town and rural blocks like Karon, Sarath, Madhupur and Palojori; an economy still largely agrarian and pilgrimage-driven, now layering in logistics, small manufacturing, e-commerce fulfilment, tussar-silk handloom and a handful of tech startups drawn by Jharkhand's investment push and the town's new road and air links; monsoon waste and sanitation strain along the Kanwar route, groundwater stress, and summer heat; and the constant tension between preserving Deoghar's sacred character and modernising its infrastructure for both pilgrims and residents. Ground every scenario, consequence, and reflection in this specific, real texture — never generic Indian-city filler, and never a different city.`;
+
+/* ============================================================
+   SOUND — procedural, no audio files
+============================================================ */
+const Sound = {
+  ctx:null,
+  ensure(){
+    if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+    // Autoplay policies can leave the context suspended even after a gesture;
+    // resume before every use so sounds are never silently swallowed.
+    if(this.ctx.state==='suspended'){ this.ctx.resume().catch(()=>{}); }
+    return this.ctx;
+  },
+  tone(freq, dur, type='sine', gain=.06, delay=0){
+    try{
+      const ctx=this.ensure();
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.type=type; osc.frequency.value=freq;
+      g.gain.value=0;
+      osc.connect(g); g.connect(ctx.destination);
+      const t=ctx.currentTime+delay;
+      g.gain.linearRampToValueAtTime(gain, t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001, t+dur);
+      osc.start(t); osc.stop(t+dur+.05);
+    }catch(e){}
+  },
+  drip(){ this.tone(520,1.4,'sine',.05); this.tone(260,1.8,'sine',.03,.08); },
+  click(){ this.tone(880,.08,'triangle',.03); },
+  chime(){ this.tone(660,.5,'sine',.05); this.tone(990,.6,'sine',.03,.06); },
+  commit(){ this.tone(200,.3,'square',.02); this.tone(340,.4,'sine',.04,.05); },
+  whoosh(){ this.tone(120,.9,'sawtooth',.015); }
+};
+
+/* ============================================================
+   STATE
+============================================================ */
+const State = {
+  apiKey:'', model:Config.RECOMMENDED_MODEL, role:null,
+  year:Config.START_YEAR, turn:0, metrics:{},
+  history:[], currentScenario:null, advisorCache:new Map(), pulseHistory:[],
+  save(remember){
+    const payload = JSON.stringify({apiKey:this.apiKey, model:this.model});
+    sessionStorage.setItem('ripple_session', payload);
+    if(remember) localStorage.setItem('ripple_remember', payload);
+  },
+  restore(){
+    try{
+      const local = localStorage.getItem('ripple_remember');
+      const session = sessionStorage.getItem('ripple_session');
+      const raw = session || local;
+      if(raw){
+        const p = JSON.parse(raw);
+        this.apiKey = p.apiKey || '';
+        this.model = Config.RECOMMENDED_MODEL;
+        return !!this.apiKey;
+      }
+    }catch(e){}
+    return false;
+  },
+  clearKey(){
+    this.apiKey='';
+    sessionStorage.removeItem('ripple_session');
+    localStorage.removeItem('ripple_remember');
+  },
+  pulse(){
+    const m = this.metrics, ks = Config.METRICS.map(x=>x.key);
+    return Math.round(ks.reduce((s,k)=>s+(m[k]||0),0)/ks.length);
+  }
+};
+
+/* All AI output that reaches innerHTML passes through esc() first — the model
+   is prompted with player-written text, so its responses are untrusted input. */
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   LIVING CURRENT — flow-field particle world
+============================================================ */
+const World = {
+  reduceMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  particles:[], ripples:[], t:0, dpr:1, w:0, h:0,
+  init(canvas){
+    this.canvas=canvas; this.ctx=canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize',()=>this.resize());
+    const isSmallScreen = Math.min(window.innerWidth, window.innerHeight) < 560;
+    const count = this.reduceMotion ? 70 : (isSmallScreen ? 130 : 240);
+    for(let i=0;i<count;i++){
+      this.particles.push({x:Math.random()*this.w, y:Math.random()*this.h, vx:0, vy:0, size:.6+Math.random()*1.7});
+    }
+    this.loop();
+  },
+  resize(){
+    this.dpr = Math.min(window.devicePixelRatio||1,2);
+    this.w = this.canvas.width = window.innerWidth*this.dpr;
+    this.h = this.canvas.height = window.innerHeight*this.dpr;
+    this.canvas.style.width=window.innerWidth+'px';
+    this.canvas.style.height=window.innerHeight+'px';
+  },
+  ripple(clientX,clientY,strength=1){
+    this.ripples.push({x:clientX*this.dpr, y:clientY*this.dpr, r:0, strength, maxR:Math.max(this.w,this.h)*.9});
+  },
+  fieldAngle(x,y){
+    const t=this.t;
+    return Math.sin(x*0.0016+t*0.35)+Math.cos(y*0.0021-t*0.25)+Math.sin((x+y)*0.0011+t*0.15);
+  },
+  colorFor(pulse){
+    const cold=[62,217,196], warm=[228,99,76];
+    const k = 1 - Math.max(0,Math.min(100,pulse))/100;
+    return cold.map((c,i)=>Math.round(c+(warm[i]-c)*k));
+  },
+  loop(){
+    this.t += 0.006;
+    const ctx=this.ctx;
+    ctx.fillStyle='rgba(7,9,13,0.15)';
+    ctx.fillRect(0,0,this.w,this.h);
+    const pulse = (typeof Game!=='undefined' && Game.hasStarted) ? State.pulse() : 62;
+    const [r,g,b]=this.colorFor(pulse);
+    for(let i=this.ripples.length-1;i>=0;i--){
+      const rp=this.ripples[i];
+      rp.r += 8.5*this.dpr; rp.strength *= 0.965;
+      if(rp.r>rp.maxR || rp.strength<0.02) this.ripples.splice(i,1);
+    }
+    for(const p of this.particles){
+      const ang=this.fieldAngle(p.x,p.y);
+      let fx=Math.cos(ang)*0.14, fy=Math.sin(ang)*0.14;
+      for(const rp of this.ripples){
+        const dx=p.x-rp.x, dy=p.y-rp.y, dist=Math.hypot(dx,dy);
+        const band=Math.abs(dist-rp.r);
+        if(band<42*this.dpr){
+          const push=(1-band/(42*this.dpr))*rp.strength*1.9;
+          fx += (dx/(dist||1))*push; fy += (dy/(dist||1))*push;
+        }
+      }
+      p.vx = p.vx*0.9+fx*0.5; p.vy = p.vy*0.9+fy*0.5;
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0)p.x+=this.w; if(p.x>this.w)p.x-=this.w;
+      if(p.y<0)p.y+=this.h; if(p.y>this.h)p.y-=this.h;
+      ctx.beginPath();
+      ctx.fillStyle=`rgba(${r},${g},${b},0.55)`;
+      ctx.arc(p.x,p.y,p.size*this.dpr,0,Math.PI*2);
+      ctx.fill();
+    }
+    requestAnimationFrame(()=>this.loop());
+  }
+};
+
+/* ============================================================
+   AI — Gemini integration, schema-validated + streaming advisor
+============================================================ */
+const AI = {
+  calls:0,
+  FALLBACK_MODEL:'gemini-flash-latest',
+  urlFor(model, stream){
+    const base = `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
+    const key = encodeURIComponent(State.apiKey);
+    return stream ? `${base}:streamGenerateContent?alt=sse&key=${key}`
+                  : `${base}:generateContent?key=${key}`;
+  },
+  // Wraps an entire request — connecting AND reading the body — in one hard
+  // deadline, so a stalled connection or a stalled stream can never hang the
+  // UI forever. taskFn gets an AbortSignal to pass into fetch().
+  async withTimeout(taskFn, timeoutMs=30000){
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), timeoutMs);
+    try{
+      return await taskFn(ctrl.signal);
+    }catch(e){
+      if(e.name==='AbortError') throw new Error('The request timed out — the connection may be slow or stalled. Please try again.');
+      throw e;
+    }finally{
+      clearTimeout(timer);
+    }
+  },
+  async extractErrMsg(res){
+    const t = await res.text().catch(()=> '');
+    try{
+      const j = JSON.parse(t);
+      if(j?.error?.message) return j.error.message;
+    }catch(e){}
+    return t.slice(0,180) || res.statusText || 'Unknown error';
+  },
+  // Single choke point for every API call. If the pinned model id is ever
+  // retired (404), transparently retry once on Google's maintained
+  // `gemini-flash-latest` alias and stay on it for the rest of the session.
+  async request(body, {stream=false, timeoutMs=30000}={}){
+    const attempt = (model)=>this.withTimeout(async (signal)=>{
+      const res = await fetch(this.urlFor(model,stream), {
+        method:'POST', headers:{'Content-Type':'application/json'}, signal,
+        body: JSON.stringify(body)
+      });
+      if(res.status===404 && model!==this.FALLBACK_MODEL){
+        State.model = this.FALLBACK_MODEL;
+        const err = new Error('model-missing'); err.fallback = true;
+        throw err;
+      }
+      if(!res.ok){
+        const msg = await this.extractErrMsg(res);
+        const err = new Error('API '+res.status+' — '+msg);
+        err.status = res.status;
+        if(res.status===401 || res.status===403) err.message += ' — check that your Gemini API key is valid.';
+        throw err;
+      }
+      return res;
+    }, timeoutMs);
+    try{
+      return await attempt(State.model);
+    }catch(e){
+      if(e.fallback) return attempt(State.model);
+      throw e;
+    }
+  },
+  blockedReason(data){
+    const fb = data.promptFeedback?.blockReason;
+    if(fb) return `Blocked by the model (${fb}).`;
+    const fr = data.candidates?.[0]?.finishReason;
+    if(fr && fr!=='STOP'){
+      if(fr==='MAX_TOKENS') return 'The model ran out of output space before finishing — try again.';
+      if(fr==='SAFETY' || fr==='RECITATION') return `Blocked by the model (${fr}).`;
+      return `Generation stopped early (${fr}).`;
+    }
+    return null;
+  },
+  async callJSON(prompt, schema){
+    const res = await this.request({
+      contents:[{role:'user', parts:[{text:prompt}]}],
+      generationConfig:{ responseMimeType:'application/json', responseSchema:schema, maxOutputTokens:4096 }
+    });
+    this.calls++; UI.updateCallCount();
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if(!text){
+      throw new Error(this.blockedReason(data) || 'Empty response from model');
+    }
+    try{
+      return JSON.parse(text);
+    }catch(e){
+      throw new Error('The model returned malformed data — try again.');
+    }
+  },
+  async callJSONRetry(prompt, schema, retries=2){
+    try{ return await this.callJSON(prompt, schema); }
+    catch(e){
+      const noRetry = e.status===400 || e.status===401 || e.status===403 || e.status===404;
+      if(retries>0 && !noRetry){ await new Promise(r=>setTimeout(r,700)); return this.callJSONRetry(prompt,schema,retries-1); }
+      throw e;
+    }
+  },
+  async callText(prompt){
+    const res = await this.request({
+      contents:[{role:'user', parts:[{text:prompt}]}],
+      generationConfig:{maxOutputTokens:2048}
+    });
+    this.calls++; UI.updateCallCount();
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '…';
+  },
+  // Streams must outlive the non-streaming deadline: a full advisor paragraph
+  // over a slow connection can legitimately take over 30s of total stream time.
+  async streamText(prompt, onChunk){
+    const res = await this.request({
+      contents:[{role:'user', parts:[{text:prompt}]}],
+      generationConfig:{maxOutputTokens:2048}
+    }, {stream:true, timeoutMs:60000});
+    if(!res.body) throw new Error('stream-unavailable');
+    this.calls++; UI.updateCallCount();
+    const reader = res.body.getReader(); const decoder = new TextDecoder();
+    let buffer='', full='';
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value,{stream:true});
+      const lines = buffer.split('\n'); buffer = lines.pop();
+      for(const line of lines){
+        const t = line.trim();
+        if(!t.startsWith('data:')) continue;
+        const js = t.slice(5).trim();
+        if(!js || js==='[DONE]') continue;
+        try{
+          const parsed = JSON.parse(js);
+          const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if(chunk){ full+=chunk; onChunk(chunk); }
+        }catch(e){}
+      }
+    }
+    return full;
+  },
+  async advise(prompt, onChunk){
+    try{ return await this.streamText(prompt, onChunk); }
+    catch(e){ const text = await this.callText(prompt); onChunk(text); return text; }
+  }
+};
+
+const Schemas = {
+  scenario:{ type:'OBJECT', properties:{
+    headline:{type:'STRING'}, situation:{type:'STRING'},
+    choices:{ type:'ARRAY', items:{ type:'OBJECT', properties:{
+      id:{type:'STRING'}, label:{type:'STRING'}, summary:{type:'STRING'}
+    }, required:['id','label','summary']}}
+  }, required:['headline','situation','choices']},
+  decision:{ type:'OBJECT', properties:{
+    narrative:{type:'STRING'}, newsHeadline:{type:'STRING'},
+    metricShifts:{ type:'OBJECT', properties:{
+      environment:{type:'INTEGER'}, economy:{type:'INTEGER'}, health:{type:'INTEGER'},
+      community:{type:'INTEGER'}, innovation:{type:'INTEGER'}
+    }, required:['environment','economy','health','community','innovation']}
+  }, required:['narrative','newsHeadline','metricShifts']},
+  report:{ type:'OBJECT', properties:{
+    title:{type:'STRING'}, epilogue:{type:'STRING'},
+    strengths:{type:'ARRAY', items:{type:'STRING'}},
+    risks:{type:'ARRAY', items:{type:'STRING'}},
+    legacyScore:{type:'INTEGER'}
+  }, required:['title','epilogue','strengths','risks','legacyScore']}
+};
+
+function metricLine(m){
+  return Config.METRICS.map(x=>`${x.name} ${m[x.key]}`).join(', ');
+}
+
+const LANGUAGE_STYLE = `
+
+Language rule: Write every piece of text you generate — headlines, situation, choice labels and summaries, narrative, news headlines, advisor commentary, report title, epilogue, strengths, and risks — in clear, natural English. Keep the tone direct and grounded. Local proper nouns, honorifics, and terms (e.g. Kanwariya, Shravani Mela, Bol Bam, Dham) may appear in English text exactly as they are known in English-language reporting, but the surrounding prose itself should be plain English throughout. This language rule applies only to the text values — never translate or rename the JSON field/key names themselves.`;
+
+const Prompts = {
+  scenario(){
+    const last = State.history[State.history.length-1];
+    return `You are the simulation engine behind "The Ripple Effect", a consequence-driven life simulator.
+${WORLD_CONTEXT}
+Role: ${State.role.name} — ${State.role.desc}
+Year: ${State.year}. Turn ${State.turn} of ${Config.MAX_TURNS}.
+Current world state (0-100): ${metricLine(State.metrics)}.
+${last ? 'Last consequence: '+last.newsHeadline+' — '+last.narrative.slice(0,160) : 'This is the opening moment — nothing has happened yet.'}
+Write ONE new, specific, morally ambiguous scenario this role must respond to right now. Ground it in concrete, plausible Deoghar detail — a real place, institution, festival, or named pressure from the world setting above — never generic. Offer exactly 3 distinct choices with real trade-offs; no choice should be obviously correct. Keep the situation to 3-4 sentences.${LANGUAGE_STYLE}`;
+  },
+  decision(scenario, choiceLabel, choiceSummary){
+    return `${WORLD_CONTEXT}
+Scenario: ${scenario.headline} — ${scenario.situation}
+The player, as ${State.role.name}, chose: ${choiceLabel} — ${choiceSummary}
+Current metrics (0-100): ${metricLine(State.metrics)}.
+Write the concrete consequence of this choice in 3-4 sentences, staying grounded in Deoghar's real institutions, geography, and pressures. Be specific and a little surprising — show a second-order effect, not just the obvious one. Then output metricShifts as integers from -12 to 12 for each of the five metrics (0 allowed) reflecting real trade-offs — it would be unusual for all five to move the same direction. Also write one short, punchy in-world news headline about this event (under 12 words).${LANGUAGE_STYLE}`;
+  },
+  advisor(scenario){
+    return `${WORLD_CONTEXT}
+You are a sharp, candid advisor briefing ${State.role.name} in the moment before a decision: "${scenario.headline} — ${scenario.situation}"
+Current metrics: ${metricLine(State.metrics)}.
+In 3-4 sentences, give a direct, opinionated read on the risk each path carries, grounded in Deoghar's real stakes. Don't just restate the choices — add insight they don't already have. Speak to the player directly as "you." No headers, no lists, plain prose.${LANGUAGE_STYLE}`;
+  },
+  report(){
+    const hist = State.history.map((h,i)=>`${i+1}. ${h.newsHeadline}`).join(' / ');
+    return `${WORLD_CONTEXT}
+The simulation has ended. Role: ${State.role.name}. Final year: ${State.year}.
+Decision history: ${hist}
+Final metrics (0-100): ${metricLine(State.metrics)}.
+Write a short legacy report grounded in Deoghar: an epilogue paragraph (4-6 sentences) reflecting on the world left behind, exactly 3 concrete strengths built, exactly 3 real risks left unresolved, and a legacyScore (0-100) that is NOT simply the average of the metrics — weigh coherence and long-term sustainability of the choices too. Also give the report a short evocative title (under 8 words).${LANGUAGE_STYLE}`;
+  }
+};
+
+/* ============================================================
+   UI HELPERS
+============================================================ */
+const UI = {
+  showScreen(id){
+    const next = document.getElementById(id);
+    if(!next || (next.classList.contains('active') && !next.classList.contains('leaving'))) return;
+    const current = document.querySelector('.screen.active:not(.leaving)');
+    if(current && current!==next){
+      current.classList.remove('enter');
+      current.classList.add('leaving');
+      clearTimeout(current._leaveTimer);
+      current._leaveTimer = setTimeout(()=>{ current.classList.remove('active','leaving'); }, 620);
+    }
+    clearTimeout(next._leaveTimer);
+    next.classList.remove('leaving');
+    // Drop a previous .enter first so the entrance animation replays when a
+    // screen is revisited (e.g. returning to role select after a report).
+    next.classList.remove('enter');
+    next.classList.add('active');
+    requestAnimationFrame(()=>{
+      next.classList.add('enter');
+      // Hand keyboard focus to the new screen so Tab/Enter work immediately
+      // after a mouse-free transition.
+      next.focus({preventScroll:true});
+    });
+  },
+  toast(msg, type=''){
+    const t = document.createElement('div');
+    t.className = 'toast'+(type?' '+type:'');
+    t.textContent = msg;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(()=>t.remove(), 4200);
+  },
+  updateCallCount(){
+    const el = document.getElementById('callCount');
+    if(el) el.textContent = AI.calls;
+  },
+  typewriter(el, text, speed=16){
+    return new Promise(resolve=>{
+      el.textContent='';
+      let i=0;
+      const step=()=>{
+        el.textContent = text.slice(0,i);
+        i++;
+        if(i<=text.length){ setTimeout(step, speed); } else resolve();
+      };
+      step();
+    });
+  },
+  animateNumber(el, from, to, dur=800){
+    const start=performance.now();
+    function frame(now){
+      const p = Math.min(1,(now-start)/dur);
+      const eased = 1-Math.pow(1-p,3);
+      el.textContent = Math.round(from+(to-from)*eased);
+      if(p<1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  },
+  renderGauges(){
+    const wrap = document.getElementById('gaugeList');
+    wrap.innerHTML = Config.METRICS.map(m=>{
+      const r=15, c=2*Math.PI*r;
+      return `<div class="gauge-row" data-key="${m.key}">
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+          <circle class="gauge-track" cx="18" cy="18" r="${r}"></circle>
+          <circle class="gauge-fill" cx="18" cy="18" r="${r}" stroke="${m.color}"
+            stroke-dasharray="${c}" stroke-dashoffset="${c}"></circle>
+        </svg>
+        <div class="gauge-info">
+          <div class="gname"><span><i class="fa-solid ${m.icon}" style="color:${m.color}; margin-right:6px;" aria-hidden="true"></i>${m.name}</span><span class="gval">${State.metrics[m.key]}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+    this.refreshGauges();
+  },
+  refreshGauges(){
+    Config.METRICS.forEach(m=>{
+      const row = document.querySelector(`.gauge-row[data-key="${m.key}"]`);
+      if(!row) return;
+      const r=15, c=2*Math.PI*r;
+      const val = State.metrics[m.key];
+      const fill = row.querySelector('.gauge-fill');
+      fill.setAttribute('stroke-dashoffset', c*(1-val/100));
+      row.querySelector('.gval').textContent = val;
+    });
+    UI.animateNumber(document.getElementById('pulseNum'), parseInt(document.getElementById('pulseNum').textContent||'50'), State.pulse());
+  },
+  renderTurnDots(){
+    const wrap = document.getElementById('turnDots');
+    if(!wrap) return;
+    wrap.innerHTML = Array.from({length:Config.MAX_TURNS},(_,i)=>
+      `<span class="tdot${i < State.turn ? ' on':''}"></span>`).join('');
+  }
+};
+
+/* ============================================================
+   GAME LOOP
+============================================================ */
+const Game = {
+  hasStarted:false,
+  init(){
+    World.init(document.getElementById('current'));
+    this.bindCredits();
+    this.bindIntro();
+    this.bindSetup();
+    this.bindRoles();
+    this.bindHud();
+    this.bindReport();
+    if(State.restore()){
+      const keyInput = document.getElementById('apiKeyInput');
+      keyInput.value = State.apiKey;
+      document.getElementById('enterBtn').disabled = false;
+    }
+  },
+  bindCredits(){
+    const screen = document.getElementById('screen-credits');
+    const proceed = ()=>{
+      if(this._creditsDone) return;
+      this._creditsDone = true;
+      screen.removeEventListener('click', proceed);
+      document.removeEventListener('keydown', keyProceed);
+      UI.showScreen('screen-intro');
+      this.startAmbientRipples();
+    };
+    // Keyboard users get the same gate as pointer users: Enter/Space continue.
+    const keyProceed = (e)=>{
+      if((e.key==='Enter' || e.key===' ') && screen.classList.contains('active')){
+        e.preventDefault();
+        proceed();
+      }
+    };
+    screen.addEventListener('click', proceed);
+    document.addEventListener('keydown', keyProceed);
+  },
+  bindIntro(){
+    const screen = document.getElementById('screen-intro');
+    const cursor = document.getElementById('pondCursor');
+    const stage = screen.querySelector('.ripple-title-stage');
+    screen.addEventListener('mousemove', e=>{
+      cursor.style.display='block';
+      cursor.style.left=e.clientX+'px'; cursor.style.top=e.clientY+'px';
+    });
+    screen.addEventListener('mouseleave', ()=>{ cursor.style.display='none'; });
+
+    // The title's decorative rings are echoed by real ripples in the particle
+    // field behind it, so the two effects read as one continuous pond rather
+    // than a static headline sitting on top of a separate animation. Started
+    // only once this screen is actually shown (see bindCredits), not at bind
+    // time, so nothing runs while the credits card is still on screen.
+    let ambient = null;
+    const pulseFromTitle = ()=>{
+      if(!stage) return;
+      const r = stage.getBoundingClientRect();
+      World.ripple(r.left+r.width/2, r.top+r.height/2, 0.85);
+    };
+    this.startAmbientRipples = ()=>{
+      if(ambient || World.reduceMotion) return;
+      pulseFromTitle();
+      ambient = setInterval(pulseFromTitle, 2400);
+    };
+
+    const begin = (e)=>{
+      if(ambient) clearInterval(ambient);
+      const x = e && e.clientX ? e.clientX : window.innerWidth/2;
+      const y = e && e.clientY ? e.clientY : window.innerHeight/2;
+      World.ripple(x,y,2.4);
+      Sound.drip();
+      cursor.style.display='none';
+      screen.removeEventListener('click', begin);
+      document.removeEventListener('keydown', keyBegin);
+      setTimeout(()=>this.runCinematic(), 900);
+    };
+    const keyBegin = (e)=>{
+      if((e.key==='Enter' || e.key===' ') && screen.classList.contains('active')){
+        e.preventDefault();
+        begin(e);
+      }
+    };
+    screen.addEventListener('click', begin);
+    document.addEventListener('keydown', keyBegin);
+  },
+  async runCinematic(){
+    UI.showScreen('screen-cine');
+    const el = document.getElementById('screen-cine');
+    el.innerHTML='';
+    const lines = [
+      'Every choice is a stone.',
+      'Every consequence, a ripple.',
+      'You are about to shape a world that remembers.'
+    ];
+    for(const line of lines){
+      const div = document.createElement('div');
+      div.className='cine-line'; div.textContent=line;
+      el.appendChild(div);
+      await this.fade(div, 0, 1, 700);
+      await this.wait(1500);
+      await this.fade(div, 1, 0, 600);
+      div.remove();
+    }
+    // title reveal — same moving ripple font used on the pond screen
+    const titleEl = document.createElement('h1');
+    titleEl.className = 'ripple-title';
+    titleEl.textContent = 'The Ripple Effect';
+    titleEl.style.opacity = '0';
+    el.appendChild(titleEl);
+    Sound.chime();
+    await this.fade(titleEl, 0, 1, 700);
+    await this.wait(1600);
+    UI.showScreen('screen-setup');
+  },
+  fade(el,from,to,dur){
+    return new Promise(res=>{
+      el.style.transition=`opacity ${dur}ms var(--ease)`;
+      el.style.opacity=from;
+      requestAnimationFrame(()=>{ el.style.opacity=to; });
+      setTimeout(res,dur);
+    });
+  },
+  wait(ms){ return new Promise(r=>setTimeout(r,ms)); },
+
+  bindSetup(){
+    const keyInput = document.getElementById('apiKeyInput');
+    const enterBtn = document.getElementById('enterBtn');
+    const toggle = document.getElementById('toggleKeyVis');
+    keyInput.addEventListener('input', ()=>{
+      enterBtn.disabled = keyInput.value.trim().length < 8;
+    });
+    keyInput.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' && !enterBtn.disabled) enterBtn.click();
+    });
+    toggle.addEventListener('click', ()=>{
+      const showing = keyInput.type==='text';
+      keyInput.type = showing? 'password':'text';
+      toggle.innerHTML = showing? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+      toggle.setAttribute('aria-label', showing? 'Show key' : 'Hide key');
+    });
+    enterBtn.addEventListener('click', ()=>{
+      State.apiKey = keyInput.value.trim();
+      State.save(true);
+      Sound.chime();
+      UI.showScreen('screen-role');
+    });
+  },
+
+  bindRoles(){
+    const grid = document.getElementById('roleGrid');
+    grid.innerHTML = Config.ROLES.map((r,i)=>`
+      <button type="button" class="role-card" style="--role-c:${r.color}" data-role="${r.id}">
+        <span class="ridx">0${i+1}</span>
+        <span class="ricon"><i class="fa-solid ${r.icon}" aria-hidden="true"></i></span>
+        <span class="rname">${esc(r.name)}</span>
+        <span class="rdesc">${esc(r.desc)}</span>
+        <span class="rgo" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="rbar" aria-hidden="true"></span>
+      </button>`).join('');
+    grid.querySelectorAll('.role-card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        const role = Config.ROLES.find(r=>r.id===card.dataset.role);
+        State.role = role;
+        State.metrics = {...role.start};
+        State.year = Config.START_YEAR;
+        State.turn = 0;
+        State.history = [];
+        State.pulseHistory = [State.pulse()];
+        Sound.chime();
+        this.hasStarted = true;
+        document.getElementById('roleTag').textContent = role.name;
+        UI.renderGauges();
+        UI.renderTurnDots();
+        UI.showScreen('screen-hud');
+        this.beginTurn();
+      });
+    });
+  },
+
+  bindHud(){
+    document.getElementById('homeBtn').addEventListener('click', ()=>this.goHome());
+    document.getElementById('advisorToggle').addEventListener('click', ()=>this.consultAdvisor());
+    document.getElementById('directiveSubmit').addEventListener('click', ()=>{
+      const val = document.getElementById('directiveInput').value.trim();
+      if(!val){ UI.toast('Write a directive first.', 'error'); return; }
+      this.commitChoice(null, val);
+    });
+    document.getElementById('continueBtn').addEventListener('click', ()=>{
+      document.getElementById('narrativeOverlay').classList.remove('show');
+      if(State.turn >= Config.MAX_TURNS){ this.runFinalReport(); }
+      else { this.beginTurn(); }
+    });
+  },
+
+  resetRun(){
+    State.role = null;
+    State.metrics = {};
+    State.year = Config.START_YEAR;
+    State.turn = 0;
+    State.history = [];
+    State.currentScenario = null;
+    State.advisorCache = new Map();
+    State.pulseHistory = [];
+    this.hasStarted = false;
+    if(this.radarChart){ this.radarChart.destroy(); this.radarChart = null; }
+    if(this.lineChart){ this.lineChart.destroy(); this.lineChart = null; }
+    const ticker = document.getElementById('tickerInner');
+    if(ticker) ticker.textContent = 'Awaiting first ripple…';
+    UI.renderTurnDots();
+  },
+
+  goHome(){
+    if(State.turn > 0 && State.turn < Config.MAX_TURNS){
+      const ok = window.confirm('Leave this timeline and return to the start? Progress in this run will be lost.');
+      if(!ok) return;
+    }
+    document.getElementById('narrativeOverlay').classList.remove('show');
+    this.resetRun();
+    UI.showScreen('screen-role');
+  },
+
+  // Advances the clock and opens the next decision. Deliberately the ONLY
+  // place turn/year advance — scenario retries call loadScenario() directly
+  // so a failed generation can never silently skip a year.
+  async beginTurn(){
+    State.turn++;
+    if(State.turn > 1){ State.year += 1 + Math.round(Math.random()); }
+    document.getElementById('turnTag').textContent = `Turn ${State.turn} / ${Config.MAX_TURNS}`;
+    document.getElementById('yearNum').textContent = State.year;
+    UI.renderTurnDots();
+    await this.loadScenario();
+  },
+
+  async loadScenario(){
+    document.getElementById('scenarioEyebrow').textContent = 'Generating scenario…';
+    document.getElementById('scenarioHead').innerHTML = '<span class="skeleton" style="display:block; height:22px; width:80%;"></span>';
+    document.getElementById('scenarioBody').innerHTML = '<span class="skeleton" style="display:block; height:60px; margin-top:8px;"></span>';
+    document.getElementById('choiceList').innerHTML='';
+    document.getElementById('advisorPanel').style.display='none';
+    document.getElementById('advisorPanel').innerHTML='';
+    document.getElementById('directiveInput').value='';
+    document.getElementById('directiveSubmit').disabled = false;
+
+    try{
+      const scenario = await AI.callJSONRetry(Prompts.scenario(), Schemas.scenario);
+      State.currentScenario = scenario;
+      this.renderScenario(scenario);
+    }catch(e){
+      UI.toast('Scenario generation failed: '+e.message, 'error');
+      document.getElementById('scenarioEyebrow').textContent = 'Connection trouble';
+      document.getElementById('scenarioHead').textContent = 'The current went still.';
+      document.getElementById('scenarioBody').innerHTML = `Something interrupted the simulation. <button type="button" class="btn-ghost" id="scenarioRetryBtn" style="margin-top:10px;">Try again</button>`;
+      document.getElementById('scenarioRetryBtn').addEventListener('click', ()=>this.loadScenario());
+    }
+  },
+  renderScenario(scenario){
+    document.getElementById('scenarioEyebrow').textContent = `${State.role.name} · Year ${State.year}`;
+    document.getElementById('scenarioHead').textContent = scenario.headline;
+    document.getElementById('scenarioBody').textContent = scenario.situation;
+    const list = document.getElementById('choiceList');
+    list.innerHTML = scenario.choices.map((c,i)=>`
+      <button type="button" class="choice-btn" data-i="${i}">
+        <div class="clabel"><span class="ckey">${i+1}</span> ${esc(c.label)}</div>
+        <div class="csum">${esc(c.summary)}</div>
+      </button>`).join('');
+    list.querySelectorAll('.choice-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const c = scenario.choices[parseInt(btn.dataset.i)];
+        this.commitChoice(c, null, btn);
+      });
+    });
+  },
+  keyHandler(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    if(!document.getElementById('screen-hud').classList.contains('active')) return;
+    const tag = document.activeElement?.tagName;
+    if(tag==='TEXTAREA' || tag==='INPUT') return;
+    if(['1','2','3'].includes(e.key)){
+      const btn = document.querySelector(`.choice-btn[data-i="${parseInt(e.key)-1}"]`);
+      if(btn) btn.click();
+    }
+  },
+
+  async commitChoice(choice, customText, btnEl){
+    document.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+    document.getElementById('directiveSubmit').disabled = true;
+    if(btnEl){
+      btnEl.classList.add('dissolving');
+      const rect = btnEl.getBoundingClientRect();
+      World.ripple(rect.left+20, rect.top+rect.height/2, 1.6);
+    } else {
+      World.ripple(window.innerWidth*0.75, window.innerHeight*0.6, 1.6);
+    }
+    Sound.commit();
+
+    const label = customText ? customText : choice.label;
+    const summary = customText ? 'A self-written directive from the player.' : choice.summary;
+    const scenario = State.currentScenario;
+    document.getElementById('scenarioEyebrow').textContent = 'Writing consequence…';
+
+    const onFailed = ()=>{
+      // A dropped request must not consume the turn: restore the decision UI
+      // so the player can simply try the same choice again.
+      document.querySelectorAll('.choice-btn').forEach(b=>{
+        b.disabled = false;
+        b.classList.remove('dissolving');
+      });
+      document.getElementById('directiveSubmit').disabled = false;
+      document.getElementById('scenarioEyebrow').textContent = `${State.role.name} · Year ${State.year}`;
+    };
+
+    try{
+      const result = await AI.callJSONRetry(Prompts.decision(scenario, label, summary), Schemas.decision);
+      const shifts = result.metricShifts;
+      Config.METRICS.forEach(m=>{
+        const d = shifts[m.key]||0;
+        State.metrics[m.key] = Math.max(0, Math.min(100, State.metrics[m.key]+d));
+      });
+      State.history.push({headline:scenario.headline, choiceLabel:label, narrative:result.narrative, newsHeadline:result.newsHeadline});
+      State.pulseHistory.push(State.pulse());
+
+      const overlay = document.getElementById('narrativeOverlay');
+      document.getElementById('narrativeText').textContent='';
+      document.getElementById('narrativeShifts').innerHTML='';
+      document.getElementById('continueBtn').style.display='none';
+      overlay.classList.add('show');
+      await UI.typewriter(document.getElementById('narrativeText'), result.narrative, 14);
+      const shiftsWrap = document.getElementById('narrativeShifts');
+      shiftsWrap.innerHTML = Config.METRICS.map(m=>{
+        const d = shifts[m.key]||0;
+        const cls = d>0?'up':(d<0?'down':'flat');
+        return `<span class="shift-chip ${cls}">${m.name} ${d>0?'+':''}${d}</span>`;
+      }).join('');
+      UI.refreshGauges();
+      const feed = State.history.map(h=>h.newsHeadline).join('   ·   ');
+      document.getElementById('tickerInner').textContent = feed + '   ·   ' + feed;
+      document.getElementById('continueBtn').style.display='inline-block';
+    }catch(e){
+      UI.toast('Decision failed: '+e.message, 'error');
+      onFailed();
+    }
+  },
+
+  async consultAdvisor(){
+    const btn = document.getElementById('advisorToggle');
+    const panel = document.getElementById('advisorPanel');
+    if(!State.currentScenario){ return; }
+    const cacheKey = State.turn+'-'+State.currentScenario.headline;
+    panel.style.display='block';
+    if(State.advisorCache.has(cacheKey)){
+      panel.innerHTML = State.advisorCache.get(cacheKey);
+      return;
+    }
+    btn.disabled = true;
+    panel.innerHTML = '<span class="acaret"></span>';
+    let full='';
+    try{
+      await AI.advise(Prompts.advisor(State.currentScenario), (chunk)=>{
+        full += chunk;
+        panel.innerHTML = esc(full) + '<span class="acaret"></span>';
+      });
+      panel.innerHTML = esc(full);
+      State.advisorCache.set(cacheKey, esc(full));
+    }catch(e){
+      panel.innerHTML = 'The advisor could not be reached.';
+    }
+    btn.disabled = false;
+  },
+
+  async runFinalReport(){
+    UI.showScreen('screen-timejump');
+    document.getElementById('tjYear').textContent = State.year;
+    document.getElementById('tjSub').textContent = 'Compiling your legacy…';
+    Sound.whoosh();
+    let report;
+    try{
+      report = await AI.callJSONRetry(Prompts.report(), Schemas.report);
+    }catch(e){
+      UI.toast('Legacy report failed: '+e.message, 'error');
+      report = null;
+    }
+    const fallback = { title:'A World, Left Behind', epilogue:'The world you shaped remains, told in the numbers below.', strengths:['—','—','—'], risks:['—','—','—'], legacyScore: State.pulse() };
+    if(!report || typeof report!=='object') report = fallback;
+    await this.wait(1200);
+    // Show the report screen BEFORE drawing charts. Chart.js reads the canvas's
+    // layout size once, at construction time — while the screen is still
+    // display:none that size is 0x0, and the chart stays permanently blank
+    // even after the screen becomes visible. Making the screen active first
+    // gives the canvases real dimensions to measure.
+    UI.showScreen('screen-report');
+    try{
+      this.renderReport(report);
+    }catch(e){
+      console.error('renderReport failed:', e);
+      try{ this.renderReport(fallback); }
+      catch(e2){ console.error('renderReport fallback also failed:', e2); UI.toast('Report display error: '+e2.message, 'error'); }
+    }
+  },
+  renderReport(report){
+    const strengths = Array.isArray(report.strengths) ? report.strengths : ['—','—','—'];
+    const risks = Array.isArray(report.risks) ? report.risks : ['—','—','—'];
+    const score = report.legacyScore ?? State.pulse();
+    const title = report.title || 'A World, Left Behind';
+    const epilogue = report.epilogue || 'The world you shaped remains, told in the numbers below.';
+    this.lastReport = { title, epilogue, score, strengths, risks };
+
+    const badge = document.getElementById('reportRoleBadge');
+    badge.innerHTML = `<i class="fa-solid ${State.role.icon}"></i>`;
+    badge.style.color = State.role.color;
+    badge.style.borderColor = State.role.color;
+
+    document.getElementById('reportRole').textContent = `${State.role.name} · ${Config.START_YEAR}–${State.year}`;
+    document.getElementById('reportTitle').textContent = title;
+    document.getElementById('legacyScore').textContent = score;
+    document.getElementById('reportEpilogue').textContent = epilogue;
+    document.getElementById('strengthsList').innerHTML = strengths.map(s=>`<li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>${esc(s)}</li>`).join('');
+    document.getElementById('risksList').innerHTML = risks.map(s=>`<li><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>${esc(s)}</li>`).join('');
+    // choiceLabel can be the player's own free-text directive — always escaped.
+    document.getElementById('timelineList').innerHTML = State.history.map((h,i)=>`<li><strong>Turn ${i+1}: ${esc(h.newsHeadline)}</strong>${esc(h.choiceLabel)}</li>`).join('');
+
+    const ringR = 44, ringC = 2*Math.PI*ringR;
+    const ringFill = document.getElementById('scoreRingFill');
+    ringFill.setAttribute('stroke-dasharray', ringC);
+    ringFill.setAttribute('stroke-dashoffset', ringC);
+    requestAnimationFrame(()=>{
+      ringFill.setAttribute('stroke-dashoffset', ringC*(1-Math.max(0,Math.min(100,score))/100));
+    });
+
+    if(typeof Chart === 'undefined'){
+      console.error('Chart.js failed to load — charts skipped.');
+      UI.toast('Chart library failed to load — legacy text is still shown below.', 'error');
+      return;
+    }
+    // Keep chart typography on the same type system as the rest of the page.
+    Chart.defaults.font.family = "'Space Grotesk',sans-serif";
+    Chart.defaults.color = '#8592A1';
+
+    const ctxR = document.getElementById('radarChart').getContext('2d');
+    if(this.radarChart) this.radarChart.destroy();
+    this.radarChart = new Chart(ctxR, {
+      type:'radar',
+      data:{
+        labels: Config.METRICS.map(m=>m.name),
+        datasets:[
+          {label:'Start', data:Config.METRICS.map(m=>State.role.start[m.key]), borderColor:'#57626e', backgroundColor:'rgba(87,98,110,0.08)', pointRadius:0},
+          {label:'End', data:Config.METRICS.map(m=>State.metrics[m.key]), borderColor:'#3ED9C4', backgroundColor:'rgba(62,217,196,0.15)', pointRadius:3}
+        ]
+      },
+      options:{ responsive:true, maintainAspectRatio:false,
+        scales:{ r:{ min:0, max:100, ticks:{display:false}, grid:{color:'rgba(255,255,255,.08)'}, angleLines:{color:'rgba(255,255,255,.08)'}, pointLabels:{color:'#8592A1', font:{size:11}} } },
+        plugins:{ legend:{ labels:{color:'#EAF0EF'} } } }
+    });
+
+    const ctxL = document.getElementById('lineChart').getContext('2d');
+    if(this.lineChart) this.lineChart.destroy();
+    const traj = State.pulseHistory.length ? State.pulseHistory : [State.pulse()];
+    this.lineChart = new Chart(ctxL, {
+      type:'line',
+      data:{ labels: traj.map((_,i)=>i===0?'Start':'T'+i), datasets:[{label:'World Pulse', data:traj, borderColor:'#C9A24B', backgroundColor:'rgba(201,162,75,0.12)', fill:true, tension:.35}] },
+      options:{ responsive:true, maintainAspectRatio:false,
+        scales:{ y:{min:0,max:100, ticks:{color:'#8592A1'}, grid:{color:'rgba(255,255,255,.06)'}}, x:{ticks:{color:'#8592A1'}, grid:{display:false}} },
+        plugins:{ legend:{ labels:{color:'#EAF0EF'} } } }
+    });
+  },
+  bindReport(){
+    document.getElementById('restartBtn').addEventListener('click', ()=>{
+      this.resetRun();
+      UI.showScreen('screen-role');
+    });
+    document.getElementById('newKeyBtn').addEventListener('click', ()=>{
+      this.resetRun();
+      State.clearKey();
+      document.getElementById('apiKeyInput').value='';
+      document.getElementById('enterBtn').disabled = true;
+      UI.showScreen('screen-setup');
+    });
+    document.getElementById('copySummaryBtn').addEventListener('click', async ()=>{
+      const r = this.lastReport;
+      if(!r){ return; }
+      const lines = [
+        `${r.title} — Legacy Score ${r.score}/100`,
+        `Role: ${State.role.name} · ${Config.START_YEAR}–${State.year}`,
+        '',
+        r.epilogue,
+        '',
+        'Strengths:',
+        ...r.strengths.map(s=>`+ ${s}`),
+        '',
+        'Risks:',
+        ...r.risks.map(s=>`- ${s}`)
+      ];
+      const text = lines.join('\n');
+      try{
+        await navigator.clipboard.writeText(text);
+        UI.toast('Summary copied to clipboard.', 'success');
+      }catch(e){
+        // Non-secure contexts and older browsers reject the async clipboard
+        // API; fall back to a hidden textarea + execCommand before giving up.
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try{ ok = document.execCommand('copy'); }catch(_){}
+        ta.remove();
+        UI.toast(ok ? 'Summary copied to clipboard.' : 'Could not copy — your browser may have blocked clipboard access.', ok ? 'success' : 'error');
+      }
+    });
+  }
+};
+
+document.addEventListener('keydown', (e)=>Game.keyHandler(e));
+window.addEventListener('DOMContentLoaded', ()=>Game.init());
+</script>
+</body>
+</html>
